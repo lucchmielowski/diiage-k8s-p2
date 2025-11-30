@@ -4,6 +4,7 @@ This directory contains a complete monitoring stack for teaching Kubernetes obse
 
 ## 📚 Table of Contents
 
+- [Prerequisite Knowledge](#prerequisite-knowledge)
 - [Architecture Overview](#architecture-overview)
 - [Components](#components)
 - [Prerequisites](#prerequisites)
@@ -11,6 +12,62 @@ This directory contains a complete monitoring stack for teaching Kubernetes obse
 - [Using the Stack](#using-the-stack)
 - [Student Exercises](#student-exercises)
 - [Troubleshooting](#troubleshooting)
+
+## 📖 Prerequisite Knowledge
+
+Modern observability relies on three complementary pillars that work together to provide a comprehensive view of your system's health and behavior. Each pillar serves a specific purpose and answers different questions about your system.
+
+### Metrics
+
+Metrics are quantitative measurements of system behavior collected over time. They provide numerical data points that can be aggregated, analyzed, and visualized to understand trends and patterns. Examples include CPU usage, memory consumption, request rates, error counts, and response times.
+
+**What they tell you:** Metrics answer the "what" and "when" questions about your system's health. They show you that something is happening (e.g., high CPU usage, increased error rate) and when it's occurring.
+
+**Use cases:**
+- Monitoring system health and performance trends
+- Setting up alerts based on thresholds
+- Capacity planning and resource optimization
+- Creating dashboards for real-time monitoring
+
+**Tools in this stack:** Prometheus collects and stores metrics, Grafana visualizes them.
+
+### Logs
+
+Logs are discrete records of events that occurred in your system at specific points in time. Each log entry typically includes a timestamp, severity level, and detailed contextual information about what happened. Logs capture the story of your application's execution.
+
+**What they tell you:** Logs answer the "what happened" question. They provide detailed context about specific events, errors, and state changes within your application.
+
+**Use cases:**
+- Debugging application errors and exceptions
+- Auditing user actions and system changes
+- Understanding the sequence of events leading to an issue
+- Compliance and security monitoring
+
+**Tools in this stack:** OpenTelemetry Collector can receive logs; in production, you would typically add Loki or Elasticsearch for log aggregation and search.
+
+### Traces
+
+Traces follow the complete journey of a request as it flows through your distributed system. A trace consists of multiple spans, where each span represents a unit of work (like a function call or a service-to-service communication). Traces show the relationships between different components and how long each step took.
+
+**What they tell you:** Traces answer the "where" and "why" questions about performance issues. They reveal which service or component is causing slowdowns and show the complete path a request takes through your microservices architecture.
+
+**Use cases:**
+- Identifying performance bottlenecks in distributed systems
+- Understanding service dependencies and communication patterns
+- Debugging issues that span multiple services
+- Optimizing request flows and reducing latency
+
+**Tools in this stack:** Tempo stores and queries traces, Grafana visualizes them with service graphs and trace timelines.
+
+### Why Use All Three Together?
+
+Using metrics, logs, and traces together creates a powerful observability strategy:
+
+1. **Metrics** alert you that there's a problem (e.g., high error rate)
+2. **Logs** provide context about what went wrong (e.g., specific error messages)
+3. **Traces** help you pinpoint exactly where in your distributed system the issue originated (e.g., which service is slow)
+
+This holistic approach is essential for understanding and debugging complex microservices architectures in Kubernetes, where a single user request might touch dozens of services.
 
 ## 🏗️ Architecture Overview
 

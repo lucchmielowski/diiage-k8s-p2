@@ -1,0 +1,74 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: monitoring
+spec:
+  mode: deployment
+  config: |
+    receivers:
+      # OTLP receiver for traces, metrics, and logs
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      
+      # Prometheus receiver to scrape metrics
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 10s
+              static_configs:
+                - targets: ['0.0.0.0:8888']
+
+    processors:
+      # Batch processor to reduce the number of outgoing connections
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+      
+      # Memory limiter to prevent OOM
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+        spike_limit_mib: 128
+
+    exporters:
+      # Export traces to Tempo
+      otlp/tempo:
+        endpoint: tempo.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+      
+      # Export metrics to Prometheus
+      prometheusremotewrite:
+        endpoint: http://prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+        tls:
+          insecure: true
+      
+      # Logging exporter for debugging
+      logging:
+        loglevel: info
+
+    service:
+      pipelines:
+        # Traces pipeline
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/tempo, logging]
+        
+        # Metrics pipeline
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, batch]
+          exporters: [prometheusremotewrite, logging]
+        
+        # Logs pipeline
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [logging]

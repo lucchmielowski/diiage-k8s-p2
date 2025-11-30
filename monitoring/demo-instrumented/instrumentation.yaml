@@ -1,0 +1,62 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: demo-instrumentation
+  namespace: monitoring
+spec:
+  # Exporter configuration - where to send telemetry data
+  exporter:
+    endpoint: http://otel-collector-collector.monitoring.svc.cluster.local:4318
+  
+  # Propagators for context propagation
+  propagators:
+    - tracecontext
+    - baggage
+  
+  # Sampler configuration - sample all traces for demo purposes
+  sampler:
+    type: always_on
+  
+  # Python auto-instrumentation
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.42b0
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+      - name: OTEL_LOGS_EXPORTER
+        value: otlp
+      - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+        value: "true"
+  
+  # Java auto-instrumentation
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:1.32.0
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+  
+  # Node.js auto-instrumentation
+  nodejs:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-nodejs:0.45.0
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+  
+  # .NET auto-instrumentation
+  dotnet:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-dotnet:1.2.0
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+  
+  # Go - note: Go requires manual instrumentation, auto-instrumentation not available yet
+  # But we include the env vars for manual instrumentation
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: demo-app
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: http://otel-collector-collector.monitoring.svc.cluster.local:4318
+    - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      value: http/protobuf
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: deployment.environment=dev

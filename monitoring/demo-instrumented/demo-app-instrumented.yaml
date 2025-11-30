@@ -1,0 +1,169 @@
+---
+# Example: Python application with auto-instrumentation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-python-app
+  namespace: monitoring
+  labels:
+    app: demo-python-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-python-app
+  template:
+    metadata:
+      labels:
+        app: demo-python-app
+      annotations:
+        # Enable auto-instrumentation for Python
+        instrumentation.opentelemetry.io/inject-python: "monitoring/demo-instrumentation"
+        # Optional: Prometheus scraping annotations
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: app
+        image: python:3.11-slim
+        command: ["python", "-m", "http.server", "8080"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: demo-python-app
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-python-app
+  namespace: monitoring
+spec:
+  selector:
+    app: demo-python-app
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+
+---
+# Example: Node.js application with auto-instrumentation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-nodejs-app
+  namespace: monitoring
+  labels:
+    app: demo-nodejs-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-nodejs-app
+  template:
+    metadata:
+      labels:
+        app: demo-nodejs-app
+      annotations:
+        # Enable auto-instrumentation for Node.js
+        instrumentation.opentelemetry.io/inject-nodejs: "monitoring/demo-instrumentation"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+    spec:
+      containers:
+      - name: app
+        image: node:20-alpine
+        command: ["node", "-e", "require('http').createServer((req,res)=>res.end('Hello from Node.js')).listen(3000)"]
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: demo-nodejs-app
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-nodejs-app
+  namespace: monitoring
+spec:
+  selector:
+    app: demo-nodejs-app
+  ports:
+  - port: 3000
+    targetPort: 3000
+    name: http
+
+---
+# Example: Java application with auto-instrumentation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-java-app
+  namespace: monitoring
+  labels:
+    app: demo-java-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-java-app
+  template:
+    metadata:
+      labels:
+        app: demo-java-app
+      annotations:
+        # Enable auto-instrumentation for Java
+        instrumentation.opentelemetry.io/inject-java: "monitoring/demo-instrumentation"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: app
+        # Using a simple Spring Boot demo image
+        image: springio/gs-spring-boot-docker:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: demo-java-app
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-java-app
+  namespace: monitoring
+spec:
+  selector:
+    app: demo-java-app
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http

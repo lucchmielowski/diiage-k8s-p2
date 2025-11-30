@@ -1,0 +1,46 @@
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: "1.25-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: demo-frontend.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: demo-frontend-tls
+      hosts:
+        - demo-frontend.local
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+env:
+  - name: ENVIRONMENT
+    value: "production"
+  - name: APP_NAME
+    value: "demo-frontend"

@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demo-applications
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - app: demo-frontend
+        path: apps/demo-frontend
+        env: dev
+        namespace: dev
+        valuesFile: environments/values-dev.yaml
+        autoSync: "true"
+      - app: demo-frontend
+        path: apps/demo-frontend
+        env: prod
+        namespace: prod
+        valuesFile: environments/values-prod.yaml
+        autoSync: "false"
+      - app: demo-backend
+        path: apps/demo-backend
+        env: dev
+        namespace: dev
+        valuesFile: environments/values-dev.yaml
+        autoSync: "true"
+      - app: demo-backend
+        path: apps/demo-backend
+        env: prod
+        namespace: prod
+        valuesFile: environments/values-prod.yaml
+        autoSync: "false"
+  template:
+    metadata:
+      name: '{{app}}-{{env}}'
+      labels:
+        app: '{{app}}'
+        environment: '{{env}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/lucchmielowski/diiage-k8s-p2.git
+        targetRevision: main
+        path: 'gitops/{{path}}'
+        helm:
+          valueFiles:
+          - '{{valuesFile}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true

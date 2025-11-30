@@ -1,0 +1,35 @@
+replicaCount: 2
+
+image:
+  repository: hashicorp/http-echo
+  tag: "0.2.3"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 5678
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+env:
+  - name: ENVIRONMENT
+    value: "production"
+  - name: APP_NAME
+    value: "demo-backend"
+
+args:
+  - "-text=Hello from demo-backend API!"
+  - "-listen=:5678"

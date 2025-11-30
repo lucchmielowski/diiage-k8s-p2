@@ -1,0 +1,14 @@
+apiVersion: v2
+name: ecommerce-demo
+description: E-commerce microservices demo for Kubernetes training
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - microservices
+  - training
+  - observability
+maintainers:
+  - name: Luc
+    email: luc@example.com

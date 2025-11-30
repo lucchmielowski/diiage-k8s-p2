@@ -1,0 +1,33 @@
+# Development environment values
+# Minimal setup for local development
+
+observability:
+  enabled: false
+
+frontend:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+cart:
+  replicaCount: 1
+
+payment:
+  replicaCount: 1
+  failureRate: "0.5"  # 50% failures to test error handling
+
+notification:
+  replicaCount: 1
+
+podDisruptionBudget:
+  enabled: false
+
+postgresql:
+  primary:
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"

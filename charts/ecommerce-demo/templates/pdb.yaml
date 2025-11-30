@@ -1,0 +1,43 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ecommerce.fullname" . }}-frontend
+  namespace: {{ include "ecommerce.namespace" . }}
+  labels:
+    {{- include "ecommerce.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.frontend.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "ecommerce.selectorLabels" . | nindent 6 }}
+      app: frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ecommerce.fullname" . }}-cart
+  namespace: {{ include "ecommerce.namespace" . }}
+  labels:
+    {{- include "ecommerce.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ .Values.podDisruptionBudget.cart.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "ecommerce.selectorLabels" . | nindent 6 }}
+      app: cart
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ecommerce.fullname" . }}-payment
+  namespace: {{ include "ecommerce.namespace" . }}
+  labels:
+    {{- include "ecommerce.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.payment.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "ecommerce.selectorLabels" . | nindent 6 }}
+      app: payment
+{{- end }}

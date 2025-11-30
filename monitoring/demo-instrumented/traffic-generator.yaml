@@ -1,0 +1,60 @@
+---
+# Traffic Generator - continuously calls demo apps to generate telemetry data
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: monitoring
+  labels:
+    app: traffic-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+    spec:
+      containers:
+      - name: traffic-generator
+        image: curlimages/curl:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "Starting traffic generator..."
+            echo "This pod will continuously generate HTTP requests to demo applications"
+            echo "to create telemetry data (traces, metrics, logs) for demonstration."
+            echo ""
+            
+            # Wait for services to be ready
+            sleep 10
+            
+            while true; do
+              # Call Python app
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling Python app..."
+              curl -s -o /dev/null -w "Status: %{http_code}\n" http://demo-python-app.monitoring.svc.cluster.local:8080 || echo "Failed to reach Python app"
+              
+              sleep 2
+              
+              # Call Node.js app
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling Node.js app..."
+              curl -s -o /dev/null -w "Status: %{http_code}\n" http://demo-nodejs-app.monitoring.svc.cluster.local:3000 || echo "Failed to reach Node.js app"
+              
+              sleep 2
+              
+              # Call Java app
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling Java app..."
+              curl -s -o /dev/null -w "Status: %{http_code}\n" http://demo-java-app.monitoring.svc.cluster.local:8080 || echo "Failed to reach Java app"
+              
+              sleep 4
+            done
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 64Mi

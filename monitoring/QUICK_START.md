@@ -4,48 +4,64 @@
 
 ### Option 1: Automated Installation (Recommended)
 
+**Prerequisites:** `kubectl` and `helm` (v3.0+) installed
+
 ```bash
 cd monitoring
+chmod +x install.sh
 ./install.sh
 ```
 
-This will install everything automatically. When done:
+This will install everything automatically via Helm, including:
+- All monitoring components (Grafana, Prometheus, Tempo, OpenTelemetry Collector)
+- Demo applications (Python, Node.js, Java) with auto-instrumentation
+- Traffic generator that continuously calls demo apps to generate telemetry data
+
+When done, access Grafana to view the telemetry:
 
 ```bash
 # Access Grafana
 kubectl port-forward -n monitoring svc/grafana 3000:3000
-
-# Deploy demo apps (optional)
-kubectl apply -f demo-instrumented/demo-app-instrumented.yaml
 ```
 
 Open http://localhost:3000 (admin/admin)
 
+The traffic generator is already running and generating traces, metrics, and logs!
+
 ---
 
-### Option 2: Manual Installation
+### Option 2: Manual Installation with Helm
 
 ```bash
-# 1. Install cert-manager
-cd monitoring/opentelemetry-operator
-./install-cert-manager.sh
+# 1. Add Helm repositories
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
 
-# 2. Install OpenTelemetry Operator
-./install-operator.sh
+# 2. Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
 
-# 3. Deploy monitoring stack
-cd ..
+# 3. Install OpenTelemetry Operator
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.91.0/opentelemetry-operator.yaml
+kubectl wait --for=condition=available --timeout=300s deployment/opentelemetry-operator-controller-manager -n opentelemetry-operator-system
+
+# 4. Create monitoring namespace
+cd monitoring
 kubectl apply -f namespace.yaml
-kubectl apply -f tempo/tempo.yaml
-kubectl apply -f prometheus/prometheus.yaml
-kubectl apply -f grafana/grafana.yaml
-kubectl apply -f opentelemetry-collector/collector.yaml
 
-# 4. Create instrumentation resource
+# 5. Deploy monitoring stack via Helm
+helm upgrade --install tempo grafana/tempo --namespace monitoring --values tempo/values.yaml --wait
+helm upgrade --install prometheus prometheus-community/prometheus --namespace monitoring --values prometheus/values.yaml --wait
+helm upgrade --install grafana grafana/grafana --namespace monitoring --values grafana/values.yaml --wait
+helm upgrade --install otel-collector open-telemetry/opentelemetry-collector --namespace monitoring --values opentelemetry-collector/values.yaml --wait
+
+# 6. Create instrumentation resource
 kubectl apply -f demo-instrumented/instrumentation.yaml
 
-# 5. Wait for everything to be ready
-kubectl get pods -n monitoring -w
+# 7. Check everything is ready
+kubectl get pods -n monitoring
 ```
 
 ---
@@ -57,11 +73,30 @@ kubectl get pods -n monitoring -w
 kubectl get pods -n monitoring
 
 # Expected output:
-# NAME                                      READY   STATUS    
-# grafana-xxxxx                            1/1     Running
-# otel-collector-collector-xxxxx           1/1     Running
-# prometheus-xxxxx                         1/1     Running
-# tempo-xxxxx                              1/1     Running
+# NAME                                                READY   STATUS    
+# grafana-xxxxx                                      1/1     Running
+# otel-collector-opentelemetry-collector-xxxxx       1/1     Running
+# prometheus-server-xxxxx                            2/2     Running
+# tempo-0                                            1/1     Running
+# demo-python-app-xxxxx                              1/1     Running
+# demo-nodejs-app-xxxxx                              1/1     Running
+# demo-java-app-xxxxx                                1/1     Running
+# traffic-generator-xxxxx                            1/1     Running
+```
+
+Check traffic generator is working:
+
+```bash
+# View traffic generator logs
+kubectl logs -n monitoring -l app=traffic-generator -f
+
+# You should see output like:
+# [2024-11-30 10:00:00] Calling Python app...
+# Status: 200
+# [2024-11-30 10:00:02] Calling Node.js app...
+# Status: 200
+# [2024-11-30 10:00:04] Calling Java app...
+# Status: 200
 ```
 
 ---

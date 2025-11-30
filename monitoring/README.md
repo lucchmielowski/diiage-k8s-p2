@@ -150,62 +150,120 @@ This holistic approach is essential for understanding and debugging complex micr
 
 - Kubernetes cluster (v1.24+)
 - `kubectl` configured to access your cluster
-- Basic understanding of Kubernetes concepts
+- `helm` (v3.0+) installed
+- Basic understanding of Kubernetes and Helm concepts
 
 ## 📥 Installation Guide
 
-### Step 1: Install cert-manager
+### Option 1: Automated Installation (Recommended)
+
+The easiest way to install the entire monitoring stack:
+
+```bash
+cd monitoring
+chmod +x install.sh
+./install.sh
+```
+
+This script will:
+1. Add required Helm repositories
+2. Install cert-manager (for OpenTelemetry Operator webhooks)
+3. Install OpenTelemetry Operator
+4. Deploy all monitoring components via Helm (Tempo, Prometheus, Grafana, OpenTelemetry Collector)
+5. Create the Instrumentation resource
+
+**After installation**, access Grafana:
+
+```bash
+kubectl port-forward -n monitoring svc/grafana 3000:3000
+```
+
+Open http://localhost:3000 (admin/admin)
+
+---
+
+### Option 2: Manual Installation with Helm
+
+#### Step 1: Add Helm Repositories
+
+```bash
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+```
+
+#### Step 2: Install cert-manager
 
 cert-manager is required for the OpenTelemetry Operator webhooks.
 
 ```bash
-cd monitoring/opentelemetry-operator
-chmod +x install-cert-manager.sh
-./install-cert-manager.sh
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+
+# Wait for cert-manager to be ready
+kubectl wait --for=condition=available --timeout=300s \
+  deployment/cert-manager \
+  deployment/cert-manager-webhook \
+  deployment/cert-manager-cainjector \
+  -n cert-manager
 ```
 
-**What it does:**
-- Installs cert-manager v1.13.2
-- Waits for all cert-manager components to be ready
-
-### Step 2: Install OpenTelemetry Operator
+#### Step 3: Install OpenTelemetry Operator
 
 ```bash
-chmod +x install-operator.sh
-./install-operator.sh
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.91.0/opentelemetry-operator.yaml
+
+# Wait for the operator to be ready
+kubectl wait --for=condition=available --timeout=300s \
+  deployment/opentelemetry-operator-controller-manager \
+  -n opentelemetry-operator-system
 ```
 
-**What it does:**
-- Creates the `monitoring` namespace
-- Installs OpenTelemetry Operator v0.91.0
-- Operator runs in `opentelemetry-operator-system` namespace
-
-### Step 3: Deploy the Monitoring Stack
+#### Step 4: Create monitoring namespace
 
 ```bash
-# From the monitoring directory
 kubectl apply -f namespace.yaml
-kubectl apply -f tempo/tempo.yaml
-kubectl apply -f prometheus/prometheus.yaml
-kubectl apply -f grafana/grafana.yaml
-kubectl apply -f opentelemetry-collector/collector.yaml
 ```
 
-**Wait for all components to be ready:**
+#### Step 5: Deploy Monitoring Stack via Helm
+
+**Install Tempo:**
 
 ```bash
-kubectl wait --for=condition=available --timeout=300s \
-  deployment/tempo \
-  deployment/prometheus \
-  deployment/grafana \
-  -n monitoring
-
-kubectl wait --for=condition=available --timeout=300s \
-  deployment/otel-collector-collector \
-  -n monitoring
+helm upgrade --install tempo grafana/tempo \
+  --namespace monitoring \
+  --values tempo/values.yaml \
+  --wait
 ```
 
-### Step 4: Create Instrumentation Resource
+**Install Prometheus:**
+
+```bash
+helm upgrade --install prometheus prometheus-community/prometheus \
+  --namespace monitoring \
+  --values prometheus/values.yaml \
+  --wait
+```
+
+**Install Grafana:**
+
+```bash
+helm upgrade --install grafana grafana/grafana \
+  --namespace monitoring \
+  --values grafana/values.yaml \
+  --wait
+```
+
+**Install OpenTelemetry Collector:**
+
+```bash
+helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+  --namespace monitoring \
+  --values opentelemetry-collector/values.yaml \
+  --wait
+```
+
+#### Step 6: Create Instrumentation Resource
 
 This resource defines how applications should be auto-instrumented.
 
@@ -213,7 +271,7 @@ This resource defines how applications should be auto-instrumented.
 kubectl apply -f demo-instrumented/instrumentation.yaml
 ```
 
-### Step 5: Deploy Demo Applications (Optional)
+#### Step 7: Deploy Demo Applications (Optional)
 
 Deploy example applications with auto-instrumentation:
 
@@ -226,7 +284,7 @@ This deploys three demo apps:
 - **demo-nodejs-app**: Node.js HTTP server with auto-instrumentation
 - **demo-java-app**: Spring Boot app with auto-instrumentation
 
-### Step 6: Access the Stack
+#### Step 8: Access the Stack
 
 **Port-forward Grafana:**
 
@@ -241,10 +299,27 @@ Access Grafana at: http://localhost:3000
 **Port-forward Prometheus (optional):**
 
 ```bash
-kubectl port-forward -n monitoring svc/prometheus 9090:9090
+kubectl port-forward -n monitoring svc/prometheus-server 9090:80
 ```
 
 Access Prometheus at: http://localhost:9090
+
+---
+
+### Customizing Helm Deployments
+
+All Helm values files are located in their respective component directories:
+- `grafana/values.yaml` - Grafana configuration
+- `prometheus/values.yaml` - Prometheus configuration
+- `tempo/values.yaml` - Tempo configuration
+- `opentelemetry-collector/values.yaml` - Collector configuration
+
+You can customize these files to adjust:
+- Resource limits and requests
+- Storage persistence
+- Retention policies
+- Scrape intervals
+- Data source configurations
 
 ## 🎯 Using the Stack
 
@@ -502,6 +577,35 @@ sampler:
 
 ## 🐛 Troubleshooting
 
+### Helm Release Issues
+
+**List all Helm releases:**
+```bash
+helm list -n monitoring
+```
+
+**Check Helm release status:**
+```bash
+helm status <release-name> -n monitoring
+# Examples: grafana, prometheus, tempo, otel-collector
+```
+
+**Get Helm release values:**
+```bash
+helm get values <release-name> -n monitoring
+```
+
+**Rollback a failed upgrade:**
+```bash
+helm rollback <release-name> -n monitoring
+```
+
+**Uninstall and reinstall:**
+```bash
+helm uninstall <release-name> -n monitoring
+helm upgrade --install <release-name> <chart> --namespace monitoring --values <values-file> --wait
+```
+
 ### Pods not starting
 
 **Check pod status:**
@@ -510,11 +614,21 @@ kubectl describe pod <pod-name> -n monitoring
 kubectl logs <pod-name> -n monitoring
 ```
 
+**Check Helm deployment status:**
+```bash
+kubectl get deployments -n monitoring
+helm status grafana -n monitoring
+helm status prometheus -n monitoring
+helm status tempo -n monitoring
+helm status otel-collector -n monitoring
+```
+
 ### No traces appearing
 
 **Check collector logs:**
 ```bash
-kubectl logs -n monitoring deployment/otel-collector-collector -f
+# Note: Helm deployment name may differ
+kubectl logs -n monitoring deployment/otel-collector-opentelemetry-collector -f
 ```
 
 **Verify instrumentation:**
@@ -527,33 +641,82 @@ kubectl describe pod <app-pod> -n monitoring
 - Annotation format is wrong (must be `namespace/instrumentation-name`)
 - Application language not supported for auto-instrumentation
 - Network connectivity issues to collector
+- Service names changed with Helm (e.g., `prometheus-server` instead of `prometheus`)
 
 ### Grafana not showing data
 
 **Check data source configuration:**
 1. Grafana → Configuration → Data Sources
 2. Test connection to Prometheus and Tempo
-3. Verify URLs are correct:
-   - Prometheus: `http://prometheus.monitoring.svc.cluster.local:9090`
+3. Verify URLs are correct (note Helm service names):
+   - Prometheus: `http://prometheus-server.monitoring.svc.cluster.local:80`
    - Tempo: `http://tempo.monitoring.svc.cluster.local:3200`
+
+**Reconfigure datasources via Helm:**
+```bash
+# Edit grafana/values.yaml datasources section
+# Then upgrade the release
+helm upgrade grafana grafana/grafana -n monitoring --values grafana/values.yaml
+```
 
 ### High resource usage
 
-**Reduce retention:**
-```yaml
-# In prometheus.yaml
---storage.tsdb.retention.time=1d  # Instead of 7d
+**Reduce retention in Prometheus:**
 
-# In tempo.yaml
-block_retention: 24h  # Instead of 48h
+Edit `prometheus/values.yaml`:
+```yaml
+server:
+  retention: "1d"  # Instead of 7d
+```
+
+Apply changes:
+```bash
+helm upgrade prometheus prometheus-community/prometheus -n monitoring --values prometheus/values.yaml
+```
+
+**Reduce retention in Tempo:**
+
+Edit `tempo/values.yaml`:
+```yaml
+tempo:
+  config: |
+    compactor:
+      compaction:
+        block_retention: 24h  # Instead of 48h
+```
+
+Apply changes:
+```bash
+helm upgrade tempo grafana/tempo -n monitoring --values tempo/values.yaml
 ```
 
 **Adjust sampling:**
+
+Edit `demo-instrumented/instrumentation.yaml`:
 ```yaml
-# In instrumentation.yaml
 sampler:
   type: traceidratio
   argument: "0.1"  # Sample only 10% of traces
+```
+
+Apply changes:
+```bash
+kubectl apply -f demo-instrumented/instrumentation.yaml
+```
+
+### Configuration Changes Not Applied
+
+If you modify a values file and changes don't appear:
+
+```bash
+# Upgrade the Helm release with new values
+helm upgrade <release-name> <chart> -n monitoring --values <values-file>
+
+# Force recreation of pods
+helm upgrade <release-name> <chart> -n monitoring --values <values-file> --force
+
+# Verify the new configuration
+helm get values <release-name> -n monitoring
 ```
 
 ## 📖 Additional Resources
@@ -571,35 +734,6 @@ sampler:
 ### PromQL Resources
 - [PromQL Basics](https://prometheus.io/docs/prometheus/latest/querying/basics/)
 - [Query Examples](https://prometheus.io/docs/prometheus/latest/querying/examples/)
-
-## 🎯 Learning Objectives
-
-By completing these exercises, students will learn:
-
-1. **OpenTelemetry Fundamentals**
-   - What is observability (traces, metrics, logs)
-   - How OpenTelemetry standardizes telemetry
-   - Auto-instrumentation vs manual instrumentation
-
-2. **Distributed Tracing**
-   - How traces flow through distributed systems
-   - Understanding spans, trace context, and propagation
-   - Debugging with distributed traces
-
-3. **Metrics Collection**
-   - Prometheus architecture and data model
-   - PromQL query language
-   - Service-level indicators (SLIs)
-
-4. **Visualization**
-   - Building meaningful dashboards
-   - Correlating metrics and traces
-   - Creating actionable alerts
-
-5. **Kubernetes Observability**
-   - Observing containerized applications
-   - Service mesh integration concepts
-   - Best practices for production monitoring
 
 ## 🚀 Next Steps
 

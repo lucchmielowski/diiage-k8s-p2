@@ -1,0 +1,62 @@
+# Tempo Helm Chart Values
+# Chart: grafana/tempo
+
+# Number of replicas
+replicas: 1
+
+# Tempo image configuration
+tempo:
+  repository: grafana/tempo
+  tag: 2.3.1
+  pullPolicy: IfNotPresent
+  
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Storage configuration - use /tmp paths to avoid permission issues
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /tmp/tempo/traces
+      wal:
+        path: /tmp/tempo/wal
+  
+  # Ingester configuration
+  ingester:
+    max_block_duration: 5m
+  
+  # Compactor configuration
+  compactor:
+    compaction:
+      block_retention: 48h
+  
+  # Server configuration
+  server:
+    http_listen_port: 3200
+  
+  # Receivers configuration for OTLP
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+# Persistence - disabled for demo/learning environment
+persistence:
+  enabled: false
+
+# Security context - use default from chart (runAsUser: 10001)
+securityContext:
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  runAsNonRoot: true

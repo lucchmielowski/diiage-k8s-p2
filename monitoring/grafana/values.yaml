@@ -1,0 +1,110 @@
+# Grafana Helm Chart Values
+# Chart: grafana/grafana
+
+# Admin credentials
+adminUser: admin
+adminPassword: admin
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+
+# Resource limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Enable anonymous access for easy demo
+grafana.ini:
+  auth.anonymous:
+    enabled: true
+    org_role: Admin
+
+# Datasources configuration
+# Note: Tempo datasource support is built-in to modern Grafana versions
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc.cluster.local:80
+        isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: 15s
+      
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.monitoring.svc.cluster.local:3200
+        editable: true
+        jsonData:
+          tracesToLogs:
+            datasourceUid: Loki
+          serviceMap:
+            datasourceUid: Prometheus
+          nodeGraph:
+            enabled: true
+
+# Dashboard providers
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+# Pre-configured dashboards
+dashboards:
+  default:
+    otel-collector:
+      json: |
+        {
+          "title": "OpenTelemetry Collector",
+          "tags": ["opentelemetry"],
+          "timezone": "browser",
+          "schemaVersion": 16,
+          "version": 0,
+          "refresh": "10s",
+          "panels": [
+            {
+              "title": "Spans Received",
+              "type": "graph",
+              "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+              "targets": [
+                {
+                  "expr": "rate(otelcol_receiver_accepted_spans[5m])",
+                  "legendFormat": "{{receiver}}"
+                }
+              ]
+            },
+            {
+              "title": "Metrics Received",
+              "type": "graph",
+              "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+              "targets": [
+                {
+                  "expr": "rate(otelcol_receiver_accepted_metric_points[5m])",
+                  "legendFormat": "{{receiver}}"
+                }
+              ]
+            }
+          ]
+        }
+
+# Persistence (using emptyDir for demo purposes)
+persistence:
+  enabled: false

@@ -33,14 +33,20 @@ if ! command -v kubectl &> /dev/null; then
     exit 1
 fi
 
-print_header "Kubernetes Monitoring Stack Installation"
+# Check if helm is installed
+if ! command -v helm &> /dev/null; then
+    print_error "helm is not installed. Please install helm first."
+    exit 1
+fi
+
+print_header "Kubernetes Monitoring Stack Installation (Helm-based)"
 echo "This script will install:"
 echo "  - cert-manager (required for OpenTelemetry Operator)"
 echo "  - OpenTelemetry Operator"
-echo "  - OpenTelemetry Collector"
-echo "  - Tempo (distributed tracing)"
-echo "  - Prometheus (metrics)"
-echo "  - Grafana (visualization)"
+echo "  - OpenTelemetry Collector (via Helm)"
+echo "  - Tempo (via Helm - distributed tracing)"
+echo "  - Prometheus (via Helm - metrics)"
+echo "  - Grafana (via Helm - visualization)"
 echo ""
 read -p "Do you want to continue? (y/n) " -n 1 -r
 echo
@@ -49,8 +55,25 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
+# Step 0: Add Helm repositories
+print_header "Step 0/7: Adding Helm repositories"
+
+print_info "Adding Grafana Helm repo..."
+helm repo add grafana https://grafana.github.io/helm-charts 2>/dev/null || print_info "Grafana repo already added"
+
+print_info "Adding Prometheus Community Helm repo..."
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>/dev/null || print_info "Prometheus repo already added"
+
+print_info "Adding OpenTelemetry Helm repo..."
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts 2>/dev/null || print_info "OpenTelemetry repo already added"
+
+print_info "Updating Helm repositories..."
+helm repo update
+
+print_success "Helm repositories configured"
+
 # Step 1: Install cert-manager
-print_header "Step 1/6: Installing cert-manager"
+print_header "Step 1/7: Installing cert-manager"
 print_info "cert-manager is required for OpenTelemetry Operator webhooks..."
 
 if kubectl get namespace cert-manager &> /dev/null; then
@@ -69,7 +92,7 @@ else
 fi
 
 # Step 2: Install OpenTelemetry Operator
-print_header "Step 2/6: Installing OpenTelemetry Operator"
+print_header "Step 2/7: Installing OpenTelemetry Operator"
 
 if kubectl get namespace opentelemetry-operator-system &> /dev/null; then
     print_info "OpenTelemetry Operator namespace already exists, skipping installation..."
@@ -85,53 +108,131 @@ else
 fi
 
 # Step 3: Create monitoring namespace
-print_header "Step 3/6: Creating monitoring namespace"
+print_header "Step 3/7: Creating monitoring namespace"
 
 kubectl apply -f namespace.yaml
 print_success "Monitoring namespace created"
 
-# Step 4: Deploy monitoring stack components
-print_header "Step 4/6: Deploying monitoring stack components"
+# Step 3.5: Clean up existing non-Helm resources if they exist
+print_info "Checking for existing non-Helm resources..."
 
-print_info "Deploying Tempo..."
-kubectl apply -f tempo/tempo.yaml
+# Check if there are any existing deployments/services that are not managed by Helm
+if kubectl get deployments,services,configmaps -n monitoring --no-headers 2>/dev/null | grep -v "kube-root-ca.crt" | grep -q .; then
+    print_info "Found existing resources in monitoring namespace"
+    
+    # Check if any resources lack Helm labels (indicating they were created by kubectl, not Helm)
+    NON_HELM_RESOURCES=$(kubectl get deployments,services,configmaps -n monitoring -o json 2>/dev/null | \
+        jq -r '.items[] | select(.metadata.labels["app.kubernetes.io/managed-by"] != "Helm") | .metadata.name' 2>/dev/null || echo "")
+    
+    if [ ! -z "$NON_HELM_RESOURCES" ]; then
+        print_info "Detected non-Helm managed resources. These need to be removed for Helm to work properly."
+        echo -e "${YELLOW}The following resources will be deleted:${NC}"
+        echo "$NON_HELM_RESOURCES" | sed 's/^/  - /'
+        echo ""
+        read -p "Do you want to remove these resources? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            print_info "Removing old kubectl-based resources..."
+            
+            # Delete specific deployments, services, and configmaps
+            kubectl delete deployment tempo prometheus grafana otel-collector-collector -n monitoring --ignore-not-found=true 2>/dev/null || true
+            kubectl delete service tempo prometheus grafana otel-collector-collector otel-collector-collector-headless otel-collector-collector-monitoring -n monitoring --ignore-not-found=true 2>/dev/null || true
+            kubectl delete configmap tempo-config prometheus-config grafana-datasources grafana-dashboards-config grafana-dashboard-otel otel-collector-collector -n monitoring --ignore-not-found=true 2>/dev/null || true
+            
+            print_success "Old resources cleaned up"
+            sleep 2
+        else
+            print_error "Installation cannot continue with existing non-Helm resources."
+            print_error "Please manually remove them or re-run the script and choose 'y' to remove them."
+            exit 1
+        fi
+    else
+        print_info "All existing resources are Helm-managed. Proceeding..."
+    fi
+else
+    print_info "No existing resources found. Proceeding with fresh installation..."
+fi
 
-print_info "Deploying Prometheus..."
-kubectl apply -f prometheus/prometheus.yaml
+# Step 4: Deploy monitoring stack components via Helm
+print_header "Step 4/7: Deploying monitoring stack components via Helm"
 
-print_info "Deploying Grafana..."
-kubectl apply -f grafana/grafana.yaml
+print_info "Installing Tempo..."
+helm upgrade --install tempo grafana/tempo \
+    --namespace monitoring \
+    --values tempo/values.yaml \
+    --wait \
+    --timeout 5m
 
-print_info "Deploying OpenTelemetry Collector..."
-kubectl apply -f opentelemetry-collector/collector.yaml
+print_info "Installing Prometheus..."
+helm upgrade --install prometheus prometheus-community/prometheus \
+    --namespace monitoring \
+    --values prometheus/values.yaml \
+    --wait \
+    --timeout 5m
 
-print_success "All components deployed"
+print_info "Installing Grafana..."
+helm upgrade --install grafana grafana/grafana \
+    --namespace monitoring \
+    --values grafana/values.yaml \
+    --wait \
+    --timeout 5m
 
-# Step 5: Wait for components to be ready
-print_header "Step 5/6: Waiting for components to be ready"
+print_success "All Helm charts deployed"
 
-print_info "This may take a few minutes..."
+# Step 5: Deploy OpenTelemetry Collector via Helm
+print_header "Step 5/7: Deploying OpenTelemetry Collector via Helm"
+
+print_info "Installing OpenTelemetry Collector..."
+helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+    --namespace monitoring \
+    --values opentelemetry-collector/values.yaml \
+    --wait \
+    --timeout 5m
+
+print_success "OpenTelemetry Collector deployed"
+
+# Step 6: Wait for all components to be ready
+print_header "Step 6/7: Verifying all components are ready"
+
+print_info "This may take a few moments..."
 
 kubectl wait --for=condition=available --timeout=300s \
     deployment/tempo \
-    deployment/prometheus \
+    deployment/prometheus-server \
     deployment/grafana \
-    -n monitoring
-
-print_info "Waiting for OpenTelemetry Collector..."
-kubectl wait --for=condition=available --timeout=300s \
-    deployment/otel-collector-collector \
-    -n monitoring 2>/dev/null || print_info "OpenTelemetry Collector deployment name may vary, checking pods..."
+    -n monitoring 2>/dev/null || print_info "Some deployments may have different names..."
 
 sleep 5
 
 print_success "All components are ready!"
 
-# Step 6: Deploy instrumentation resource
-print_header "Step 6/6: Creating Instrumentation resource"
+# Step 7: Deploy instrumentation resource
+print_header "Step 7/9: Creating Instrumentation resource"
 
 kubectl apply -f demo-instrumented/instrumentation.yaml
 print_success "Instrumentation resource created"
+
+# Step 8: Deploy demo applications
+print_header "Step 8/9: Deploying demo applications"
+
+print_info "Deploying demo applications (Python, Node.js, Java)..."
+kubectl apply -f demo-instrumented/demo-app-instrumented.yaml
+
+print_info "Waiting for demo applications to be ready..."
+sleep 10
+
+print_success "Demo applications deployed"
+
+# Step 9: Deploy traffic generator
+print_header "Step 9/9: Deploying traffic generator"
+
+print_info "Deploying traffic generator to continuously call demo apps..."
+kubectl apply -f demo-instrumented/traffic-generator.yaml
+
+print_info "Waiting for traffic generator to start..."
+sleep 5
+
+print_success "Traffic generator deployed - it will continuously generate telemetry data"
 
 # Summary
 print_header "Installation Complete! 🎉"
@@ -146,6 +247,8 @@ echo "  ✓ Tempo (tracing backend)"
 echo "  ✓ Prometheus (metrics backend)"
 echo "  ✓ Grafana (visualization)"
 echo "  ✓ Instrumentation resource (for auto-instrumentation)"
+echo "  ✓ Demo applications (Python, Node.js, Java)"
+echo "  ✓ Traffic generator (continuously generating telemetry)"
 echo ""
 
 echo "To access Grafana:"
@@ -154,8 +257,12 @@ echo "  2. Open: http://localhost:3000"
 echo "  3. Login: admin / admin"
 echo ""
 
-echo "To deploy demo applications:"
-echo "  kubectl apply -f demo-instrumented/demo-app-instrumented.yaml"
+echo "Demo applications are running and generating telemetry data automatically!"
+echo "You can view traces, metrics, and logs in Grafana."
+echo ""
+
+echo "To view traffic generator logs:"
+echo "  kubectl logs -n monitoring -l app=traffic-generator -f"
 echo ""
 
 echo "To enable auto-instrumentation in your apps, add this annotation:"

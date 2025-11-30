@@ -1,0 +1,54 @@
+# Prometheus Helm Chart Values
+# Chart: prometheus-community/prometheus
+
+# Disable components we don't need for this setup
+alertmanager:
+  enabled: false
+
+prometheus-pushgateway:
+  enabled: false
+
+kube-state-metrics:
+  enabled: true
+
+prometheus-node-exporter:
+  enabled: true
+
+# Prometheus server configuration
+server:
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Retention
+  retention: "7d"
+
+  # Enable remote write receiver for OpenTelemetry Collector
+  extraArgs:
+    web.enable-remote-write-receiver: ""
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    servicePort: 80
+
+  # Persistence (using emptyDir for demo purposes)
+  persistentVolume:
+    enabled: false
+  
+  emptyDir:
+    sizeLimit: ""
+
+# Global Prometheus configuration
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      # Scrape OpenTelemetry Collector
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets: ['otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:8888']

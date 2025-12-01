@@ -140,6 +140,7 @@ Cette approche holistique est essentielle pour comprendre et déboguer les archi
 - Base de données de métriques de séries temporelles
 - Scrape les métriques depuis les applications et Kubernetes
 - Reçoit les métriques depuis OpenTelemetry Collector
+- **Note :** Cette stack utilise Prometheus standalone. Le Prometheus Operator (voir [Alternative dans l'Exercice 7](#exercice-7--configurer-des-alertes-avancé)) est une alternative plus avancée qui simplifie la gestion des alertes et la découverte de services via des CRDs.
 
 ### 5. **Grafana**
 - Plateforme de visualisation unifiée
@@ -534,27 +535,134 @@ histogram_quantile(0.95, rate(http_server_duration_bucket[5m]))
 **Objectif :** Créer une alerte Prometheus pour des taux d'erreur élevés.
 
 **Tâches :**
-1. Créer une ressource PrometheusRule
-2. Définir une alerte pour un taux d'erreur > 5%
-3. Tester l'alerte en générant des erreurs
+1. Créer un ConfigMap avec des règles d'alerte Prometheus
+2. Configurer Prometheus pour charger ces règles
+3. Définir une alerte pour un taux d'erreur > 5%
+4. Tester l'alerte en générant des erreurs
 
-**Exemple :**
+**Note :** Cette stack utilise Prometheus standalone (pas le Prometheus Operator), donc les alertes sont configurées via des fichiers de règles plutôt que via la ressource `PrometheusRule` CRD.
+
+**Étape 1 : Créer un ConfigMap avec les règles d'alerte**
+
 ```yaml
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: app-alerts
+  name: prometheus-alerts
   namespace: monitoring
-spec:
-  groups:
-  - name: app
-    rules:
-    - alert: HighErrorRate
-      expr: rate(http_server_requests_total{status=~"5.."}[5m]) > 0.05
-      for: 5m
-      annotations:
-        summary: "High error rate detected"
+data:
+  alerts.yml: |
+    groups:
+    - name: app
+      rules:
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for {{ $labels.service }}"
 ```
+
+**Étape 2 : Mettre à jour la configuration Prometheus**
+
+Éditer `prometheus/values.yaml` pour ajouter la configuration des règles d'alerte :
+
+```yaml
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      # ... (configuration existante)
+    
+    # Ajouter la configuration des règles d'alerte
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+# Ajouter un volume pour monter le ConfigMap
+server:
+  extraVolumes:
+    - name: alert-rules
+      configMap:
+        name: prometheus-alerts
+  extraVolumeMounts:
+    - name: alert-rules
+      mountPath: /etc/prometheus/rules
+```
+
+**Étape 3 : Appliquer les changements**
+
+```bash
+# Créer le ConfigMap
+kubectl apply -f prometheus-alerts-configmap.yaml
+
+# Mettre à jour Prometheus
+helm upgrade prometheus prometheus-community/prometheus \
+  --namespace monitoring \
+  --values prometheus/values.yaml
+```
+
+**Étape 4 : Vérifier les alertes**
+
+Accéder à Prometheus et naviguer vers **Alerts** pour voir les alertes configurées.
+
+---
+
+#### Alternative : Utiliser Prometheus Operator (Plus simple)
+
+Si vous préférez une approche plus simple et plus native à Kubernetes pour gérer les alertes, vous pouvez utiliser le **Prometheus Operator** au lieu de Prometheus standalone. Le Prometheus Operator fournit des Custom Resource Definitions (CRDs) qui simplifient la gestion de Prometheus et de ses règles d'alerte.
+
+**Avantages du Prometheus Operator :**
+- ✅ Gestion des alertes via des ressources Kubernetes (`PrometheusRule` CRD)
+- ✅ Découverte automatique des services à scraper via `ServiceMonitor`
+- ✅ Configuration déclarative via des ressources Kubernetes
+- ✅ Intégration native avec AlertManager
+- ✅ Gestion simplifiée des mises à jour et de la configuration
+
+**Pour utiliser Prometheus Operator :**
+
+1. **Remplacer le chart Prometheus** dans `install.sh` :
+   ```bash
+   # Au lieu de prometheus-community/prometheus
+   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+     --namespace monitoring \
+     --values prometheus-operator/values.yaml
+   ```
+
+2. **Créer des alertes avec PrometheusRule** (beaucoup plus simple) :
+   ```yaml
+   apiVersion: monitoring.coreos.com/v1
+   kind: PrometheusRule
+   metadata:
+     name: app-alerts
+     namespace: monitoring
+   spec:
+     groups:
+     - name: app
+       rules:
+       - alert: HighErrorRate
+         expr: rate(http_server_requests_total{status=~"5.."}[5m]) > 0.05
+         for: 5m
+         annotations:
+           summary: "High error rate detected"
+           description: "Error rate is above 5% for {{ $labels.service }}"
+   ```
+
+3. **Découvrir automatiquement les services** avec `ServiceMonitor` :
+   ```yaml
+   apiVersion: monitoring.coreos.com/v1
+   kind: ServiceMonitor
+   metadata:
+     name: my-app
+     namespace: monitoring
+   spec:
+     selector:
+       matchLabels:
+         app: my-app
+     endpoints:
+     - port: http
+       path: /metrics
+   ```
+
+**Note :** Cette stack utilise actuellement Prometheus standalone pour rester simple et léger. Le Prometheus Operator est recommandé pour les environnements de production où vous avez besoin de plus de fonctionnalités et d'une gestion plus déclarative.
 
 ---
 

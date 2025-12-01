@@ -20,6 +20,8 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --set dashboard.create=true \
   --wait
 
+kubectl apply -f rbac.yaml
+
 echo "✅ Chaos Mesh installed successfully!"
 echo ""
 echo "📊 Access Chaos Mesh Dashboard:"
@@ -29,3 +31,5 @@ echo ""
 echo "🔍 Verify installation:"
 echo "   kubectl get pods -n chaos-mesh"
 echo "   kubectl get crds | grep chaos-mesh"
+echo "Get the token for the cluster manager:"
+echo "   kubectl create token account-cluster-manager-txsbf -n default"

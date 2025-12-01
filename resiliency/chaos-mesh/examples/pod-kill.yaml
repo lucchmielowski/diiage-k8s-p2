@@ -1,3 +1,46 @@
+---
+# Test application for pod-kill experiment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app-pod-kill
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test-app-pod-kill
+  template:
+    metadata:
+      labels:
+        app: test-app-pod-kill
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app-pod-kill
+  namespace: default
+spec:
+  selector:
+    app: test-app-pod-kill
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# Chaos experiment: Pod Kill
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -15,7 +58,7 @@ spec:
     namespaces:
       - default
     labelSelectors:
-      app: demo-backend  # Target pods with this label
+      app: test-app-pod-kill
   
   # Schedule (optional - runs once if not specified)
   # scheduler:

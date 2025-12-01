@@ -1,3 +1,46 @@
+---
+# Test application for stress-test experiment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app-stress-test
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: test-app-stress-test
+  template:
+    metadata:
+      labels:
+        app: test-app-stress-test
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app-stress-test
+  namespace: default
+spec:
+  selector:
+    app: test-app-stress-test
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# Chaos experiment: Stress Test
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -12,7 +55,7 @@ spec:
     namespaces:
       - default
     labelSelectors:
-      app: demo-backend  # Target pods with this label
+      app: test-app-stress-test
   
   # Stress configuration
   stressors:
@@ -28,7 +71,7 @@ spec:
   
   # Container to inject stress into (optional - uses first container if not specified)
   # containerNames:
-  #   - backend-container
+  #   - app
   
   # Duration - how long the stress lasts
   duration: "2m"

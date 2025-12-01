@@ -1,0 +1,33 @@
+# Create a ServiceAccount to connect to the Chaos Mesh dashboard
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  namespace: default
+  name: account-cluster-manager-txsbf
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: role-cluster-manager-txsbf
+rules:
+- apiGroups: [""]
+  resources: ["pods", "namespaces"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["chaos-mesh.org"]
+  resources: [ "*" ]
+  verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bind-cluster-manager-txsbf
+subjects:
+- kind: ServiceAccount
+  name: account-cluster-manager-txsbf
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: role-cluster-manager-txsbf
+  apiGroup: rbac.authorization.k8s.io

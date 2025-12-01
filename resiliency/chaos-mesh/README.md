@@ -51,67 +51,114 @@ Open http://localhost:2333 in your browser.
 
 ## 📚 Examples
 
+**Note**: Each example is self-contained and creates its own test application pods. You can run any example in isolation without needing existing applications.
+
 ### 1. Pod Kill - `examples/pod-kill.yaml`
 
-Randomly kills one pod with label `app: demo-backend`.
+Creates a test application with 3 replicas and randomly kills one pod.
 
 ```bash
 kubectl apply -f examples/pod-kill.yaml
 ```
 
+This will:
+1. Create a test application deployment (`test-app-pod-kill`) with 3 replicas
+2. Create a service for the application
+3. Start a chaos experiment that kills one random pod
+
 **Use case**: Test if your application properly handles pod restarts and if monitoring detects the failure.
 
 **Watch the effect**:
 ```bash
-kubectl get pods -w -l app=demo-backend
+kubectl get pods -w -l app=test-app-pod-kill
+```
+
+**Cleanup**:
+```bash
+kubectl delete -f examples/pod-kill.yaml
 ```
 
 ### 2. Network Delay - `examples/network-delay.yaml`
 
-Adds 200ms latency (±50ms jitter) to incoming traffic for one backend pod.
+Creates a test application and adds 200ms latency (±50ms jitter) to incoming traffic for one pod.
 
 ```bash
 kubectl apply -f examples/network-delay.yaml
 ```
 
+This will:
+1. Create a test application deployment (`test-app-network-delay`) with 2 replicas
+2. Create a service for the application
+3. Start a chaos experiment that adds network delay to one pod
+
 **Use case**: Test how your application behaves under network latency and if timeouts are properly configured.
 
 **Test the latency**:
 ```bash
-# From another pod
-kubectl run -it --rm debug --image=busybox --restart=Never -- sh
-# Inside the pod, try to reach the backend service
+# Port-forward the service
+kubectl port-forward svc/test-app-network-delay 8080:80
+
+# In another terminal, test the latency
+for i in {1..10}; do time curl http://localhost:8080; done
+```
+
+**Cleanup**:
+```bash
+kubectl delete -f examples/network-delay.yaml
 ```
 
 ### 3. Pod Failure - `examples/pod-failure.yaml`
 
-Makes 50% of frontend pods unavailable for 1 minute without deleting them.
+Creates a test application with 4 replicas and makes 50% of pods unavailable for 1 minute without deleting them.
 
 ```bash
 kubectl apply -f examples/pod-failure.yaml
 ```
 
+This will:
+1. Create a test application deployment (`test-app-pod-failure`) with 4 replicas
+2. Create a service for the application
+3. Start a chaos experiment that makes 50% of pods unavailable
+
 **Use case**: Test if your load balancer properly routes traffic away from failed pods and if you have enough replicas.
 
 **Monitor**:
 ```bash
-kubectl get pods -l app=demo-frontend
+kubectl get pods -l app=test-app-pod-failure
 kubectl describe pod <pod-name>
+# Check the service endpoints
+kubectl get endpoints test-app-pod-failure
+```
+
+**Cleanup**:
+```bash
+kubectl delete -f examples/pod-failure.yaml
 ```
 
 ### 4. Stress Test - `examples/stress-test.yaml`
 
-Stresses one backend pod with high CPU (80% on 2 workers) and memory consumption (256MB).
+Creates a test application and stresses one pod with high CPU (80% on 2 workers) and memory consumption (256MB).
 
 ```bash
 kubectl apply -f examples/stress-test.yaml
 ```
 
+This will:
+1. Create a test application deployment (`test-app-stress-test`) with 2 replicas
+2. Create a service for the application
+3. Start a chaos experiment that stresses one pod with CPU and memory load
+
 **Use case**: Test resource limits, horizontal pod autoscaling, and application performance under stress.
 
 **Monitor resources**:
 ```bash
-kubectl top pods -l app=demo-backend
+kubectl top pods -l app=test-app-stress-test
+kubectl get pods -l app=test-app-stress-test -o wide
+```
+
+**Cleanup**:
+```bash
+kubectl delete -f examples/stress-test.yaml
 ```
 
 ## 🔍 Managing Chaos Experiments
@@ -132,10 +179,18 @@ kubectl describe podchaos pod-kill-example
 
 ### Delete an experiment
 
+**Note**: Since each example file contains both the test application and the chaos experiment, deleting the file will remove both:
+
 ```bash
+# This removes both the test app and the chaos experiment
 kubectl delete -f examples/pod-kill.yaml
-# or
+
+# Or delete just the chaos experiment (keeps the test app running)
 kubectl delete podchaos pod-kill-example
+
+# Or delete just the test app (keeps the chaos experiment, but it won't find targets)
+kubectl delete deployment test-app-pod-kill
+kubectl delete service test-app-pod-kill
 ```
 
 ### Pause/Resume an experiment

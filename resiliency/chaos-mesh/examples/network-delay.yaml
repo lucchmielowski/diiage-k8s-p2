@@ -1,3 +1,46 @@
+---
+# Test application for network-delay experiment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app-network-delay
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: test-app-network-delay
+  template:
+    metadata:
+      labels:
+        app: test-app-network-delay
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app-network-delay
+  namespace: default
+spec:
+  selector:
+    app: test-app-network-delay
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# Chaos experiment: Network Delay
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -15,7 +58,7 @@ spec:
     namespaces:
       - default
     labelSelectors:
-      app: demo-backend  # Target pods with this label
+      app: test-app-network-delay
   
   # Delay configuration
   delay:
@@ -32,7 +75,7 @@ spec:
   #     namespaces:
   #       - default
   #     labelSelectors:
-  #       app: demo-frontend
+  #       app: test-app-client
   #   mode: one
   
   # Duration - how long the chaos lasts

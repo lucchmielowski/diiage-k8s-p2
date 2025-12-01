@@ -1,3 +1,46 @@
+---
+# Test application for pod-failure experiment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app-pod-failure
+  namespace: default
+spec:
+  replicas: 4  # Multiple replicas to test failure handling
+  selector:
+    matchLabels:
+      app: test-app-pod-failure
+  template:
+    metadata:
+      labels:
+        app: test-app-pod-failure
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app-pod-failure
+  namespace: default
+spec:
+  selector:
+    app: test-app-pod-failure
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# Chaos experiment: Pod Failure
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -16,7 +59,7 @@ spec:
     namespaces:
       - default
     labelSelectors:
-      app: demo-frontend  # Target pods with this label
+      app: test-app-pod-failure
   
   # Duration - how long pods remain failed
   duration: "1m"

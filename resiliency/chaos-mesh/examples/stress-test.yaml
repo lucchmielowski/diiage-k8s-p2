@@ -1,0 +1,34 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: stress-test-example
+  namespace: default
+spec:
+  # Chaos execution mode
+  mode: one  # Options: one, all, fixed, fixed-percent, random-max-percent
+  
+  # Target selection
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: demo-backend  # Target pods with this label
+  
+  # Stress configuration
+  stressors:
+    # CPU stress
+    cpu:
+      workers: 2      # Number of workers
+      load: 80        # CPU load percentage per worker
+    
+    # Memory stress
+    memory:
+      workers: 1      # Number of workers
+      size: "256MB"   # Memory to allocate
+  
+  # Container to inject stress into (optional - uses first container if not specified)
+  # containerNames:
+  #   - backend-container
+  
+  # Duration - how long the stress lasts
+  duration: "2m"

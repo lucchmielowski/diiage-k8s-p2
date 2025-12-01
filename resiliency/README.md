@@ -742,6 +742,18 @@ Sessions d'entraînement pour incidents majeurs.
 └─────────────────────────────────────────┘
 ```
 
+### 🚀 Practical Examples
+
+Ready-to-use Chaos Mesh examples are available in the [`chaos-mesh/`](./chaos-mesh/) directory:
+
+- **Installation script** - Quick setup of Chaos Mesh on your cluster
+- **Pod Kill** - Test pod restart resilience
+- **Network Delay** - Simulate network latency
+- **Pod Failure** - Make pods unavailable
+- **Stress Test** - CPU and memory pressure testing
+
+See [`chaos-mesh/README.md`](./chaos-mesh/README.md) for detailed instructions and usage examples.
+
 ### Scheduling Chaos
 
 ```

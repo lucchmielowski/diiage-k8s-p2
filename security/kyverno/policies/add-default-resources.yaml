@@ -1,0 +1,105 @@
+---
+# MUTATION Policy: Add default resource requests/limits if not specified
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-default-resources
+  annotations:
+    policies.kyverno.io/title: Add Default Resources
+    policies.kyverno.io/category: Other
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Automatically adds default CPU and memory resource requests and limits
+      to containers that don't have them specified.
+spec:
+  background: false
+  rules:
+    - name: add-default-requests-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      mutate:
+        patchStrategicMerge:
+          spec:
+            containers:
+              - (name): "*"
+                resources:
+                  requests:
+                    +(memory): "128Mi"
+                    +(cpu): "100m"
+                  limits:
+                    +(memory): "512Mi"
+                    +(cpu): "500m"
+
+---
+# MUTATION Policy: Add default securityContext
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-safe-security-context
+  annotations:
+    policies.kyverno.io/title: Add Safe Security Context
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Automatically adds a safe securityContext to containers that don't have one,
+      ensuring they run as non-root with read-only root filesystem.
+spec:
+  background: false
+  rules:
+    - name: add-security-context
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      mutate:
+        patchStrategicMerge:
+          spec:
+            securityContext:
+              +(runAsNonRoot): true
+              +(runAsUser): 1000
+              +(fsGroup): 1000
+            containers:
+              - (name): "*"
+                securityContext:
+                  +(allowPrivilegeEscalation): false
+                  +(runAsNonRoot): true
+                  +(capabilities):
+                    drop:
+                      - ALL
+
+---
+# MUTATION Policy: Add managed-by annotation
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-managed-by-annotation
+  annotations:
+    policies.kyverno.io/title: Add Managed-By Annotation
+    policies.kyverno.io/category: Other
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: Deployment, StatefulSet, DaemonSet
+    policies.kyverno.io/description: >-
+      Automatically adds a 'managed-by: kyverno' annotation to all Deployments,
+      StatefulSets, and DaemonSets for tracking purposes.
+spec:
+  background: true
+  rules:
+    - name: add-annotation
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+                - DaemonSet
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            annotations:
+              +(managed-by): "kyverno"

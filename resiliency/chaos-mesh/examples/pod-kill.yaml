@@ -1,0 +1,28 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-example
+  namespace: default
+spec:
+  # Type of chaos action
+  action: pod-kill
+  
+  # Chaos execution mode
+  mode: one  # Options: one, all, fixed, fixed-percent, random-max-percent
+  
+  # Target selection
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: demo-backend  # Target pods with this label
+  
+  # Schedule (optional - runs once if not specified)
+  # scheduler:
+  #   cron: "@every 2m"
+  
+  # Duration - how long the chaos lasts
+  duration: "30s"
+  
+  # Grace period before killing the pod
+  gracePeriod: 0

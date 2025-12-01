@@ -1,0 +1,103 @@
+---
+# Backend Application - Uses developer-user ServiceAccount
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: security-demo
+  labels:
+    app: backend
+    version: v1.0.0
+    team: demo-team
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: v1.0.0
+        team: demo-team
+    spec:
+      serviceAccountName: developer-user
+      containers:
+        - name: backend
+          image: nginx:alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: backend-config
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: security-demo
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    http {
+        server {
+            listen 8080;
+            location / {
+                return 200 'Backend Service - Processing Request\n';
+                add_header Content-Type text/plain;
+            }
+            location /health {
+                return 200 'OK\n';
+                add_header Content-Type text/plain;
+            }
+        }
+    }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: security-demo
+  labels:
+    app: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: backend

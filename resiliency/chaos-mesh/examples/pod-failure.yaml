@@ -1,0 +1,26 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-failure-example
+  namespace: default
+spec:
+  # Type of chaos action
+  action: pod-failure  # Makes pod unavailable without actually deleting it
+  
+  # Chaos execution mode
+  mode: fixed-percent
+  value: "50"  # Affect 50% of matching pods
+  
+  # Target selection
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: demo-frontend  # Target pods with this label
+  
+  # Duration - how long pods remain failed
+  duration: "1m"
+  
+  # Schedule for recurring chaos (optional)
+  # scheduler:
+  #   cron: "@every 5m"

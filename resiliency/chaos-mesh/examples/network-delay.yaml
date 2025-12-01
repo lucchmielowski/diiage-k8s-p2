@@ -1,0 +1,39 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-example
+  namespace: default
+spec:
+  # Type of network chaos action
+  action: delay  # Options: delay, loss, duplicate, corrupt, partition, bandwidth
+  
+  # Chaos execution mode
+  mode: one  # Options: one, all, fixed, fixed-percent, random-max-percent
+  
+  # Target selection
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: demo-backend  # Target pods with this label
+  
+  # Delay configuration
+  delay:
+    latency: "200ms"      # Added latency
+    correlation: "100"    # Correlation between successive delays (0-100)
+    jitter: "50ms"        # Random variation in delay
+  
+  # Direction of traffic affected
+  direction: to  # Options: to, from, both
+  
+  # Target for network chaos (optional - affects all if not specified)
+  # target:
+  #   selector:
+  #     namespaces:
+  #       - default
+  #     labelSelectors:
+  #       app: demo-frontend
+  #   mode: one
+  
+  # Duration - how long the chaos lasts
+  duration: "2m"

@@ -1,0 +1,32 @@
+---
+# VALIDATION Policy: Require specific labels on all Deployments
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require Labels
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >-
+      Requires all Deployments to have specific labels (app, version, team)
+      for better organization and tracking.
+spec:
+  validationFailureAction: Enforce  # Change to "Audit" for testing
+  background: true
+  rules:
+    - name: check-for-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      validate:
+        message: "Deployment must have labels 'app', 'version', and 'team'."
+        pattern:
+          metadata:
+            labels:
+              app: "?*"
+              version: "?*"
+              team: "?*"

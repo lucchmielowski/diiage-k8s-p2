@@ -1,0 +1,124 @@
+---
+# Read-only Role - can only view resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: readonly-role
+  namespace: security-demo
+rules:
+  - apiGroups: ["", "apps", "batch"]
+    resources:
+      - pods
+      - pods/log
+      - deployments
+      - replicasets
+      - services
+      - configmaps
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+# Developer Role - can create, update, delete application resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer-role
+  namespace: security-demo
+rules:
+  # Full access to pods and their logs
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - pods/exec
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  
+  # Full access to deployments and related resources
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  
+  # Full access to services
+  - apiGroups: [""]
+    resources:
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  
+  # Full access to configmaps and secrets
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  
+  # Full access to jobs and cronjobs
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  
+  # Read-only access to events
+  - apiGroups: [""]
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+# Admin Role - full control over the namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: admin-role
+  namespace: security-demo
+rules:
+  # Full access to all resources
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]

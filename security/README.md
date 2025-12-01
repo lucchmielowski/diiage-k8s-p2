@@ -4,6 +4,154 @@
 
 La sécurité dans Kubernetes n'est pas une option mais une nécessité. Ce document couvre les concepts de base de la sécurité K8s et comment Kyverno permet d'automatiser la compliance et l'audit.
 
+## 🚀 Quick Start - Installation
+
+Ce répertoire contient des exemples pratiques de sécurité Kubernetes avec RBAC, Network Policies et Kyverno.
+
+### Installation automatique (Recommandé)
+
+```bash
+cd security
+chmod +x install.sh
+./install.sh
+```
+
+Cela installera :
+- **Namespace** : `security-demo`
+- **RBAC** : 3 ServiceAccounts (readonly, developer, admin) avec leurs Roles et RoleBindings
+- **Network Policies** : default-deny + règles allow pour frontend → backend → database
+- **Applications de démo** : frontend (nginx), backend (nginx), database (postgres)
+
+### Installation de Kyverno (Optionnelle)
+
+```bash
+cd kyverno
+chmod +x install-kyverno.sh
+./install-kyverno.sh
+
+# Appliquer les policies
+kubectl apply -f policies/
+```
+
+### Vérification
+
+```bash
+# Vérifier tous les composants
+kubectl get all,sa,roles,rolebindings,networkpolicies -n security-demo
+
+# Vérifier les policies Kyverno (si installé)
+kubectl get clusterpolicies
+```
+
+## 🧪 Tests pratiques
+
+### Test 1 : RBAC - Permissions read-only
+
+```bash
+# ✅ Doit fonctionner : lister les pods
+kubectl get pods -n security-demo --as=system:serviceaccount:security-demo:readonly-user
+
+# ❌ Doit échouer : créer un pod
+kubectl run test --image=nginx -n security-demo --as=system:serviceaccount:security-demo:readonly-user
+
+# Vérifier les permissions
+kubectl auth can-i create pods -n security-demo --as=system:serviceaccount:security-demo:readonly-user
+# Devrait afficher "no"
+
+kubectl auth can-i get pods -n security-demo --as=system:serviceaccount:security-demo:readonly-user
+# Devrait afficher "yes"
+```
+
+### Test 2 : Network Policies - Isolation réseau
+
+```bash
+# ✅ Frontend peut appeler Backend (policy permet)
+kubectl exec -n security-demo deployment/frontend -- wget -qO- http://backend:8080
+
+# ❌ Frontend ne peut PAS appeler Database (aucune policy permet)
+kubectl exec -n security-demo deployment/frontend -- wget -qO- --timeout=3 http://database:5432
+# Devrait timeout ou être refusé
+
+# ✅ Backend peut appeler Database (policy permet)
+kubectl exec -n security-demo deployment/backend -- nc -zv database 5432
+```
+
+### Test 3 : Kyverno - Validation de policies
+
+```bash
+# Essayer de créer un Deployment SANS les labels requis (doit échouer)
+kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-no-labels
+  namespace: security-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+EOF
+
+# Essayer de créer un pod privilégié (doit échouer)
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-pod
+  namespace: security-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    securityContext:
+      privileged: true
+EOF
+```
+
+### Test 4 : Visualiser les PolicyReports
+
+```bash
+# Voir les rapports de compliance Kyverno
+kubectl get policyreports -A
+kubectl describe policyreport -n security-demo
+```
+
+## 📁 Structure du répertoire
+
+```
+security/
+├── README.md                          # Ce fichier
+├── install.sh                         # Script d'installation principal
+├── namespace.yaml                     # Namespace security-demo
+├── rbac/
+│   ├── service-accounts.yaml         # 3 ServiceAccounts (readonly, developer, admin)
+│   ├── roles.yaml                     # 3 Roles avec permissions différentes
+│   └── role-bindings.yaml            # RoleBindings liant SAs aux Roles
+├── network-policies/
+│   ├── default-deny.yaml             # Deny-all ingress et egress
+│   └── allow-policies.yaml           # Allow DNS, frontend→backend, backend→database
+├── kyverno/
+│   ├── install-kyverno.sh            # Installation de Kyverno via Helm
+│   └── policies/
+│       ├── require-labels.yaml       # Validation : labels obligatoires
+│       ├── disallow-privileged.yaml  # Validation : pas de containers privilégiés
+│       ├── add-default-resources.yaml # Mutation : ajoute resources par défaut
+│       └── generate-network-policy.yaml # Generation : NetworkPolicy dans nouveaux namespaces
+└── demo-apps/
+    ├── frontend.yaml                  # Frontend (nginx, readonly-user)
+    ├── backend.yaml                   # Backend (nginx, developer-user)
+    └── database.yaml                  # Database (postgres, admin-user)
+```
+
 ## 1. Pourquoi la sécurité K8s est critique ?
 
 ### Les risques principaux

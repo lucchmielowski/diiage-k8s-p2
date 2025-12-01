@@ -23,6 +23,62 @@ Ils utilisent les Custom Resources Definitions (CRD) et suivent le pattern contr
 - Gérer les sauvegardes et restaurations
 - Gérer des configurations complexes
 
+### Custom Resource Definitions (CRD)
+
+Une CRD permet d'étendre l'API Kubernetes en définissant de nouveaux types de ressources personnalisées. Voici un exemple simple :
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: books.example.com
+spec:
+  group: example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                pages:
+                  type: integer
+  scope: Namespaced
+  names:
+    plural: books
+    singular: book
+    kind: Book
+```
+
+Une fois cette CRD créée, vous pouvez créer des instances de cette ressource personnalisée :
+
+```yaml
+apiVersion: example.com/v1
+kind: Book
+metadata:
+  name: kubernetes-guide
+spec:
+  title: "Kubernetes: The Complete Guide"
+  author: "John Doe"
+  pages: 500
+```
+
+**Pourquoi utiliser les CRDs ?**
+
+Les CRDs permettent de :
+- **Définir des abstractions métier** : Créer des ressources qui correspondent à votre domaine (ex: Database, Application, etc.)
+- **Standardiser les configurations** : Encapsuler des configurations complexes dans des ressources déclaratives
+- **Bénéficier de l'écosystème Kubernetes** : Utiliser `kubectl`, les outils GitOps, les controllers natifs avec vos ressources personnalisées
+- **Automatiser via des controllers** : Les operators peuvent surveiller ces ressources et exécuter des actions automatiques
+
 ### Avantages par rapport aux autres solutions
 
 - Automatisation native et déclarative

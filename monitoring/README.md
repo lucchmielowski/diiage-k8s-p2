@@ -1,75 +1,75 @@
-# Kubernetes Monitoring with OpenTelemetry
+# Surveillance Kubernetes avec OpenTelemetry
 
-This directory contains a complete monitoring stack for teaching Kubernetes observability with OpenTelemetry, including automatic sidecar injection, distributed tracing, and metrics collection.
+Ce répertoire contient une stack de surveillance complète pour enseigner l'observabilité Kubernetes avec OpenTelemetry, incluant l'injection automatique de sidecars, le traçage distribué et la collecte de métriques.
 
-## 📚 Table of Contents
+## 📚 Table des matières
 
-- [Prerequisite Knowledge](#prerequisite-knowledge)
-- [Architecture Overview](#architecture-overview)
-- [Components](#components)
-- [Prerequisites](#prerequisites)
-- [Installation Guide](#installation-guide)
-- [Using the Stack](#using-the-stack)
-- [Student Exercises](#student-exercises)
-- [Troubleshooting](#troubleshooting)
+- [Connaissances prérequises](#connaissances-prérequises)
+- [Vue d'ensemble de l'architecture](#vue-densemble-de-larchitecture)
+- [Composants](#composants)
+- [Prérequis](#prérequis)
+- [Guide d'installation](#guide-dinstallation)
+- [Utilisation de la stack](#utilisation-de-la-stack)
+- [Exercices pour étudiants](#exercices-pour-étudiants)
+- [Dépannage](#dépannage)
 
-## 📖 Prerequisite Knowledge
+## 📖 Connaissances prérequises
 
-Modern observability relies on three complementary pillars that work together to provide a comprehensive view of your system's health and behavior. Each pillar serves a specific purpose and answers different questions about your system.
+L'observabilité moderne repose sur trois piliers complémentaires qui travaillent ensemble pour fournir une vue complète de la santé et du comportement de votre système. Chaque pilier sert un objectif spécifique et répond à différentes questions sur votre système.
 
-### Metrics
+### Métriques
 
-Metrics are quantitative measurements of system behavior collected over time. They provide numerical data points that can be aggregated, analyzed, and visualized to understand trends and patterns. Examples include CPU usage, memory consumption, request rates, error counts, and response times.
+Les métriques sont des mesures quantitatives du comportement du système collectées au fil du temps. Elles fournissent des points de données numériques qui peuvent être agrégés, analysés et visualisés pour comprendre les tendances et les modèles. Les exemples incluent l'utilisation du CPU, la consommation de mémoire, les taux de requêtes, les compteurs d'erreurs et les temps de réponse.
 
-**What they tell you:** Metrics answer the "what" and "when" questions about your system's health. They show you that something is happening (e.g., high CPU usage, increased error rate) and when it's occurring.
+**Ce qu'elles vous disent :** Les métriques répondent aux questions "quoi" et "quand" concernant la santé de votre système. Elles vous montrent que quelque chose se produit (par exemple, utilisation élevée du CPU, taux d'erreur accru) et quand cela se produit.
 
-**Use cases:**
-- Monitoring system health and performance trends
-- Setting up alerts based on thresholds
-- Capacity planning and resource optimization
-- Creating dashboards for real-time monitoring
+**Cas d'usage :**
+- Surveillance de la santé du système et des tendances de performance
+- Configuration d'alertes basées sur des seuils
+- Planification de la capacité et optimisation des ressources
+- Création de tableaux de bord pour la surveillance en temps réel
 
-**Tools in this stack:** Prometheus collects and stores metrics, Grafana visualizes them.
+**Outils dans cette stack :** Prometheus collecte et stocke les métriques, Grafana les visualise.
 
 ### Logs
 
-Logs are discrete records of events that occurred in your system at specific points in time. Each log entry typically includes a timestamp, severity level, and detailed contextual information about what happened. Logs capture the story of your application's execution.
+Les logs sont des enregistrements discrets d'événements qui se sont produits dans votre système à des moments précis. Chaque entrée de log inclut généralement un horodatage, un niveau de sévérité et des informations contextuelles détaillées sur ce qui s'est passé. Les logs capturent l'histoire de l'exécution de votre application.
 
-**What they tell you:** Logs answer the "what happened" question. They provide detailed context about specific events, errors, and state changes within your application.
+**Ce qu'ils vous disent :** Les logs répondent à la question "que s'est-il passé". Ils fournissent un contexte détaillé sur des événements spécifiques, des erreurs et des changements d'état dans votre application.
 
-**Use cases:**
-- Debugging application errors and exceptions
-- Auditing user actions and system changes
-- Understanding the sequence of events leading to an issue
-- Compliance and security monitoring
+**Cas d'usage :**
+- Débogage des erreurs et exceptions d'application
+- Audit des actions utilisateur et des changements système
+- Compréhension de la séquence d'événements menant à un problème
+- Conformité et surveillance de la sécurité
 
-**Tools in this stack:** OpenTelemetry Collector can receive logs; in production, you would typically add Loki or Elasticsearch for log aggregation and search.
+**Outils dans cette stack :** OpenTelemetry Collector peut recevoir des logs ; en production, vous ajouteriez typiquement Loki ou Elasticsearch pour l'agrégation et la recherche de logs.
 
 ### Traces
 
-Traces follow the complete journey of a request as it flows through your distributed system. A trace consists of multiple spans, where each span represents a unit of work (like a function call or a service-to-service communication). Traces show the relationships between different components and how long each step took.
+Les traces suivent le parcours complet d'une requête lorsqu'elle traverse votre système distribué. Une trace consiste en plusieurs spans, où chaque span représente une unité de travail (comme un appel de fonction ou une communication service-à-service). Les traces montrent les relations entre différents composants et combien de temps chaque étape a pris.
 
-**What they tell you:** Traces answer the "where" and "why" questions about performance issues. They reveal which service or component is causing slowdowns and show the complete path a request takes through your microservices architecture.
+**Ce qu'elles vous disent :** Les traces répondent aux questions "où" et "pourquoi" concernant les problèmes de performance. Elles révèlent quel service ou composant cause des ralentissements et montrent le chemin complet qu'une requête prend à travers votre architecture de microservices.
 
-**Use cases:**
-- Identifying performance bottlenecks in distributed systems
-- Understanding service dependencies and communication patterns
-- Debugging issues that span multiple services
-- Optimizing request flows and reducing latency
+**Cas d'usage :**
+- Identification des goulots d'étranglement de performance dans les systèmes distribués
+- Compréhension des dépendances de services et des modèles de communication
+- Débogage de problèmes qui s'étendent sur plusieurs services
+- Optimisation des flux de requêtes et réduction de la latence
 
-**Tools in this stack:** Tempo stores and queries traces, Grafana visualizes them with service graphs and trace timelines.
+**Outils dans cette stack :** Tempo stocke et interroge les traces, Grafana les visualise avec des graphes de services et des chronologies de traces.
 
-### Why Use All Three Together?
+### Pourquoi utiliser les trois ensemble ?
 
-Using metrics, logs, and traces together creates a powerful observability strategy:
+Utiliser les métriques, les logs et les traces ensemble crée une stratégie d'observabilité puissante :
 
-1. **Metrics** alert you that there's a problem (e.g., high error rate)
-2. **Logs** provide context about what went wrong (e.g., specific error messages)
-3. **Traces** help you pinpoint exactly where in your distributed system the issue originated (e.g., which service is slow)
+1. **Les métriques** vous alertent qu'il y a un problème (par exemple, taux d'erreur élevé)
+2. **Les logs** fournissent le contexte sur ce qui s'est mal passé (par exemple, messages d'erreur spécifiques)
+3. **Les traces** vous aident à identifier précisément où dans votre système distribué le problème a pris naissance (par exemple, quel service est lent)
 
-This holistic approach is essential for understanding and debugging complex microservices architectures in Kubernetes, where a single user request might touch dozens of services.
+Cette approche holistique est essentielle pour comprendre et déboguer les architectures de microservices complexes dans Kubernetes, où une seule requête utilisateur peut toucher des dizaines de services.
 
-## 🏗️ Architecture Overview
+## 🏗️ Vue d'ensemble de l'architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -119,45 +119,45 @@ This holistic approach is essential for understanding and debugging complex micr
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 🧩 Components
+## 🧩 Composants
 
 ### 1. **OpenTelemetry Operator**
-- Manages OpenTelemetry Collector deployments
-- Automatically injects instrumentation sidecars into pods
-- Supports Python, Java, Node.js, .NET auto-instrumentation
+- Gère les déploiements d'OpenTelemetry Collector
+- Injecte automatiquement des sidecars d'instrumentation dans les pods
+- Prend en charge l'auto-instrumentation Python, Java, Node.js, .NET
 
 ### 2. **OpenTelemetry Collector**
-- Receives telemetry data via OTLP (gRPC and HTTP)
-- Processes and batches data
-- Exports traces to Tempo and metrics to Prometheus
+- Reçoit les données de télémétrie via OTLP (gRPC et HTTP)
+- Traite et met en lot les données
+- Exporte les traces vers Tempo et les métriques vers Prometheus
 
 ### 3. **Tempo**
-- Distributed tracing backend
-- Stores and queries traces
-- Integrated with Grafana for visualization
+- Backend de traçage distribué
+- Stocke et interroge les traces
+- Intégré avec Grafana pour la visualisation
 
 ### 4. **Prometheus**
-- Time-series metrics database
-- Scrapes metrics from applications and Kubernetes
-- Receives metrics from OpenTelemetry Collector
+- Base de données de métriques de séries temporelles
+- Scrape les métriques depuis les applications et Kubernetes
+- Reçoit les métriques depuis OpenTelemetry Collector
 
 ### 5. **Grafana**
-- Unified visualization platform
-- Pre-configured with Prometheus and Tempo data sources
-- Includes example dashboards
+- Plateforme de visualisation unifiée
+- Pré-configurée avec les sources de données Prometheus et Tempo
+- Inclut des tableaux de bord d'exemple
 
-## ✅ Prerequisites
+## ✅ Prérequis
 
-- Kubernetes cluster (v1.24+)
-- `kubectl` configured to access your cluster
-- `helm` (v3.0+) installed
-- Basic understanding of Kubernetes and Helm concepts
+- Cluster Kubernetes (v1.24+)
+- `kubectl` configuré pour accéder à votre cluster
+- `helm` (v3.0+) installé
+- Compréhension de base des concepts Kubernetes et Helm
 
-## 📥 Installation Guide
+## 📥 Guide d'installation
 
-### Option 1: Automated Installation (Recommended)
+### Option 1 : Installation automatisée (Recommandée)
 
-The easiest way to install the entire monitoring stack:
+Le moyen le plus simple d'installer toute la stack de surveillance :
 
 ```bash
 cd monitoring
@@ -165,26 +165,26 @@ chmod +x install.sh
 ./install.sh
 ```
 
-This script will:
-1. Add required Helm repositories
-2. Install cert-manager (for OpenTelemetry Operator webhooks)
-3. Install OpenTelemetry Operator
-4. Deploy all monitoring components via Helm (Tempo, Prometheus, Grafana, OpenTelemetry Collector)
-5. Create the Instrumentation resource
+Ce script va :
+1. Ajouter les dépôts Helm requis
+2. Installer cert-manager (pour les webhooks OpenTelemetry Operator)
+3. Installer OpenTelemetry Operator
+4. Déployer tous les composants de surveillance via Helm (Tempo, Prometheus, Grafana, OpenTelemetry Collector)
+5. Créer la ressource Instrumentation
 
-**After installation**, access Grafana:
+**Après l'installation**, accédez à Grafana :
 
 ```bash
 kubectl port-forward -n monitoring svc/grafana 3000:3000
 ```
 
-Open http://localhost:3000 (admin/admin)
+Ouvrez http://localhost:3000 (admin/admin)
 
 ---
 
-### Option 2: Manual Installation with Helm
+### Option 2 : Installation manuelle avec Helm
 
-#### Step 1: Add Helm Repositories
+#### Étape 1 : Ajouter les dépôts Helm
 
 ```bash
 helm repo add grafana https://grafana.github.io/helm-charts
@@ -193,14 +193,14 @@ helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm
 helm repo update
 ```
 
-#### Step 2: Install cert-manager
+#### Étape 2 : Installer cert-manager
 
-cert-manager is required for the OpenTelemetry Operator webhooks.
+cert-manager est requis pour les webhooks OpenTelemetry Operator.
 
 ```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
 
-# Wait for cert-manager to be ready
+# Attendre que cert-manager soit prêt
 kubectl wait --for=condition=available --timeout=300s \
   deployment/cert-manager \
   deployment/cert-manager-webhook \
@@ -208,26 +208,26 @@ kubectl wait --for=condition=available --timeout=300s \
   -n cert-manager
 ```
 
-#### Step 3: Install OpenTelemetry Operator
+#### Étape 3 : Installer OpenTelemetry Operator
 
 ```bash
 kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.91.0/opentelemetry-operator.yaml
 
-# Wait for the operator to be ready
+# Attendre que l'opérateur soit prêt
 kubectl wait --for=condition=available --timeout=300s \
   deployment/opentelemetry-operator-controller-manager \
   -n opentelemetry-operator-system
 ```
 
-#### Step 4: Create monitoring namespace
+#### Étape 4 : Créer le namespace monitoring
 
 ```bash
 kubectl apply -f namespace.yaml
 ```
 
-#### Step 5: Deploy Monitoring Stack via Helm
+#### Étape 5 : Déployer la stack de surveillance via Helm
 
-**Install Tempo:**
+**Installer Tempo :**
 
 ```bash
 helm upgrade --install tempo grafana/tempo \
@@ -236,7 +236,7 @@ helm upgrade --install tempo grafana/tempo \
   --wait
 ```
 
-**Install Prometheus:**
+**Installer Prometheus :**
 
 ```bash
 helm upgrade --install prometheus prometheus-community/prometheus \
@@ -245,7 +245,7 @@ helm upgrade --install prometheus prometheus-community/prometheus \
   --wait
 ```
 
-**Install Grafana:**
+**Installer Grafana :**
 
 ```bash
 helm upgrade --install grafana grafana/grafana \
@@ -254,7 +254,7 @@ helm upgrade --install grafana grafana/grafana \
   --wait
 ```
 
-**Install OpenTelemetry Collector:**
+**Installer OpenTelemetry Collector :**
 
 ```bash
 helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
@@ -263,71 +263,71 @@ helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
   --wait
 ```
 
-#### Step 6: Create Instrumentation Resource
+#### Étape 6 : Créer la ressource Instrumentation
 
-This resource defines how applications should be auto-instrumented.
+Cette ressource définit comment les applications doivent être auto-instrumentées.
 
 ```bash
 kubectl apply -f demo-instrumented/instrumentation.yaml
 ```
 
-#### Step 7: Deploy Demo Applications (Optional)
+#### Étape 7 : Déployer les applications de démonstration (Optionnel)
 
-Deploy example applications with auto-instrumentation:
+Déployer des applications d'exemple avec auto-instrumentation :
 
 ```bash
 kubectl apply -f demo-instrumented/demo-app-instrumented.yaml
 ```
 
-This deploys three demo apps:
-- **demo-python-app**: Python HTTP server with auto-instrumentation
-- **demo-nodejs-app**: Node.js HTTP server with auto-instrumentation
-- **demo-java-app**: Spring Boot app with auto-instrumentation
+Cela déploie trois applications de démonstration :
+- **demo-python-app** : Serveur HTTP Python avec auto-instrumentation
+- **demo-nodejs-app** : Serveur HTTP Node.js avec auto-instrumentation
+- **demo-java-app** : Application Spring Boot avec auto-instrumentation
 
-#### Step 8: Access the Stack
+#### Étape 8 : Accéder à la stack
 
-**Port-forward Grafana:**
+**Port-forward Grafana :**
 
 ```bash
 kubectl port-forward -n monitoring svc/grafana 3000:3000
 ```
 
-Access Grafana at: http://localhost:3000
-- Username: `admin`
-- Password: `admin`
+Accédez à Grafana à : http://localhost:3000
+- Nom d'utilisateur : `admin`
+- Mot de passe : `admin`
 
-**Port-forward Prometheus (optional):**
+**Port-forward Prometheus (optionnel) :**
 
 ```bash
 kubectl port-forward -n monitoring svc/prometheus-server 9090:80
 ```
 
-Access Prometheus at: http://localhost:9090
+Accédez à Prometheus à : http://localhost:9090
 
 ---
 
-### Customizing Helm Deployments
+### Personnalisation des déploiements Helm
 
-All Helm values files are located in their respective component directories:
-- `grafana/values.yaml` - Grafana configuration
-- `prometheus/values.yaml` - Prometheus configuration
-- `tempo/values.yaml` - Tempo configuration
-- `opentelemetry-collector/values.yaml` - Collector configuration
+Tous les fichiers de valeurs Helm sont situés dans leurs répertoires de composants respectifs :
+- `grafana/values.yaml` - Configuration Grafana
+- `prometheus/values.yaml` - Configuration Prometheus
+- `tempo/values.yaml` - Configuration Tempo
+- `opentelemetry-collector/values.yaml` - Configuration Collector
 
-You can customize these files to adjust:
-- Resource limits and requests
-- Storage persistence
-- Retention policies
-- Scrape intervals
-- Data source configurations
+Vous pouvez personnaliser ces fichiers pour ajuster :
+- Les limites et demandes de ressources
+- La persistance du stockage
+- Les politiques de rétention
+- Les intervalles de scraping
+- Les configurations de sources de données
 
-## 🎯 Using the Stack
+## 🎯 Utilisation de la stack
 
-### How to Enable Auto-Instrumentation
+### Comment activer l'auto-instrumentation
 
-To enable auto-instrumentation for your applications, add annotations to your Pod spec:
+Pour activer l'auto-instrumentation pour vos applications, ajoutez des annotations à votre spécification Pod :
 
-#### Python Application
+#### Application Python
 
 ```yaml
 apiVersion: apps/v1
@@ -348,30 +348,30 @@ spec:
           value: my-python-app
 ```
 
-#### Node.js Application
+#### Application Node.js
 
 ```yaml
 annotations:
   instrumentation.opentelemetry.io/inject-nodejs: "monitoring/demo-instrumentation"
 ```
 
-#### Java Application
+#### Application Java
 
 ```yaml
 annotations:
   instrumentation.opentelemetry.io/inject-java: "monitoring/demo-instrumentation"
 ```
 
-#### .NET Application
+#### Application .NET
 
 ```yaml
 annotations:
   instrumentation.opentelemetry.io/inject-dotnet: "monitoring/demo-instrumentation"
 ```
 
-### Enable Prometheus Scraping
+### Activer le scraping Prometheus
 
-Add these annotations to enable Prometheus to scrape metrics from your pods:
+Ajoutez ces annotations pour permettre à Prometheus de scraper les métriques depuis vos pods :
 
 ```yaml
 annotations:
@@ -380,93 +380,93 @@ annotations:
   prometheus.io/path: "/metrics"
 ```
 
-### Viewing Traces in Grafana
+### Visualiser les traces dans Grafana
 
-1. Open Grafana (http://localhost:3000)
-2. Navigate to **Explore** (compass icon)
-3. Select **Tempo** as the data source
-4. Use the **Search** tab to find traces
-5. Filter by service name, operation, tags, etc.
+1. Ouvrez Grafana (http://localhost:3000)
+2. Naviguez vers **Explore** (icône boussole)
+3. Sélectionnez **Tempo** comme source de données
+4. Utilisez l'onglet **Search** pour trouver les traces
+5. Filtrez par nom de service, opération, tags, etc.
 
-### Viewing Metrics in Grafana
+### Visualiser les métriques dans Grafana
 
-1. In Grafana, navigate to **Explore**
-2. Select **Prometheus** as the data source
-3. Use PromQL queries, for example:
-   - `rate(http_requests_total[5m])` - HTTP request rate
-   - `otelcol_receiver_accepted_spans` - Spans received by collector
-   - `up` - Service availability
+1. Dans Grafana, naviguez vers **Explore**
+2. Sélectionnez **Prometheus** comme source de données
+3. Utilisez des requêtes PromQL, par exemple :
+   - `rate(http_requests_total[5m])` - Taux de requêtes HTTP
+   - `otelcol_receiver_accepted_spans` - Spans reçus par le collector
+   - `up` - Disponibilité du service
 
-## 🎓 Student Exercises
+## 🎓 Exercices pour étudiants
 
-### Exercise 1: Verify the Installation
+### Exercice 1 : Vérifier l'installation
 
-**Objective:** Ensure all components are running correctly.
+**Objectif :** S'assurer que tous les composants fonctionnent correctement.
 
-**Tasks:**
-1. List all pods in the `monitoring` namespace
-2. Check that all deployments are ready
-3. Verify the OpenTelemetry Collector is receiving data
+**Tâches :**
+1. Lister tous les pods dans le namespace `monitoring`
+2. Vérifier que tous les déploiements sont prêts
+3. Vérifier que l'OpenTelemetry Collector reçoit des données
 
-**Commands:**
+**Commandes :**
 ```bash
 kubectl get pods -n monitoring
 kubectl get deployments -n monitoring
 kubectl logs -n monitoring deployment/otel-collector-collector -f
 ```
 
-**Expected Results:**
-- All pods should be in `Running` state
-- All deployments should show `READY 1/1`
-- Collector logs should show no errors
+**Résultats attendus :**
+- Tous les pods devraient être dans l'état `Running`
+- Tous les déploiements devraient afficher `READY 1/1`
+- Les logs du collector ne devraient montrer aucune erreur
 
 ---
 
-### Exercise 2: Deploy an Instrumented Application
+### Exercice 2 : Déployer une application instrumentée
 
-**Objective:** Deploy your first auto-instrumented application.
+**Objectif :** Déployer votre première application auto-instrumentée.
 
-**Tasks:**
-1. Deploy the Python demo app
-2. Verify the sidecar was injected
-3. Generate some traffic
-4. Find traces in Grafana
+**Tâches :**
+1. Déployer l'application Python de démonstration
+2. Vérifier que le sidecar a été injecté
+3. Générer du trafic
+4. Trouver les traces dans Grafana
 
-**Commands:**
+**Commandes :**
 ```bash
-# Deploy
+# Déployer
 kubectl apply -f demo-instrumented/demo-app-instrumented.yaml
 
-# Check if sidecar was injected
+# Vérifier si le sidecar a été injecté
 kubectl get pod -n monitoring -l app=demo-python-app -o yaml | grep -A 5 "initContainers"
 
-# Generate traffic
+# Générer du trafic
 kubectl port-forward -n monitoring svc/demo-python-app 8080:8080
-# In another terminal:
+# Dans un autre terminal :
 for i in {1..20}; do curl http://localhost:8080; sleep 1; done
 
-# Access Grafana
+# Accéder à Grafana
 kubectl port-forward -n monitoring svc/grafana 3000:3000
-# Open http://localhost:3000 and explore traces
+# Ouvrir http://localhost:3000 et explorer les traces
 ```
 
-**Questions:**
-- How many containers are in the pod after injection?
-- What traces do you see in Tempo?
-- What metrics appear in Prometheus?
+**Questions :**
+- Combien de conteneurs y a-t-il dans le pod après l'injection ?
+- Quelles traces voyez-vous dans Tempo ?
+- Quelles métriques apparaissent dans Prometheus ?
 
 ---
 
-### Exercise 3: Add Instrumentation to Existing Apps
+### Exercice 3 : Ajouter l'instrumentation aux applications existantes
 
-**Objective:** Add auto-instrumentation to the existing demo-frontend app.
+**Objectif :** Ajouter l'auto-instrumentation à l'application demo-frontend existante.
 
-**Tasks:**
-1. Copy the `demo-frontend` Helm chart
-2. Add the instrumentation annotation
-3. Deploy and verify traces appear
+**Tâches :**
+1. Copier le chart Helm `demo-frontend`
+2. Ajouter l'annotation d'instrumentation
+3. Déployer et vérifier que les traces apparaissent
 
-**Hint:** Add this to the deployment template metadata:
+**Indice :** Ajoutez ceci aux métadonnées du template de déploiement :
 ```yaml
 annotations:
   instrumentation.opentelemetry.io/inject-python: "monitoring/demo-instrumentation"
@@ -474,71 +474,71 @@ annotations:
 
 ---
 
-### Exercise 4: Create a Custom Dashboard
+### Exercice 4 : Créer un tableau de bord personnalisé
 
-**Objective:** Build a Grafana dashboard for your application.
+**Objectif :** Construire un tableau de bord Grafana pour votre application.
 
-**Tasks:**
-1. In Grafana, create a new dashboard
-2. Add a panel showing request rate
-3. Add a panel showing error rate
-4. Add a panel showing request duration (p95, p99)
+**Tâches :**
+1. Dans Grafana, créer un nouveau tableau de bord
+2. Ajouter un panneau affichant le taux de requêtes
+3. Ajouter un panneau affichant le taux d'erreurs
+4. Ajouter un panneau affichant la durée des requêtes (p95, p99)
 
-**Example PromQL queries:**
+**Exemples de requêtes PromQL :**
 ```promql
-# Request rate
+# Taux de requêtes
 rate(http_server_requests_total[5m])
 
-# Error rate
+# Taux d'erreurs
 rate(http_server_requests_total{status=~"5.."}[5m])
 
-# Request duration p95
+# Durée des requêtes p95
 histogram_quantile(0.95, rate(http_server_duration_bucket[5m]))
 ```
 
 ---
 
-### Exercise 5: Trace a Distributed Request
+### Exercice 5 : Tracer une requête distribuée
 
-**Objective:** Understand distributed tracing across services.
+**Objectif :** Comprendre le traçage distribué à travers les services.
 
-**Tasks:**
-1. Deploy both `demo-frontend` and `demo-backend` with instrumentation
-2. Make a request that goes frontend → backend
-3. Find the distributed trace in Tempo
-4. Analyze the trace spans
+**Tâches :**
+1. Déployer à la fois `demo-frontend` et `demo-backend` avec instrumentation
+2. Faire une requête qui va frontend → backend
+3. Trouver la trace distribuée dans Tempo
+4. Analyser les spans de la trace
 
-**Questions:**
-- How many spans are in the trace?
-- What's the total request duration?
-- Where is most time spent?
-
----
-
-### Exercise 6: Investigate a Performance Issue
-
-**Objective:** Use observability tools to debug a slow service.
-
-**Scenario:** One of your services is responding slowly.
-
-**Tasks:**
-1. Find slow traces in Tempo (duration > 1s)
-2. Identify which span is taking the most time
-3. Correlate with metrics in Prometheus
-4. Propose a solution
+**Questions :**
+- Combien de spans y a-t-il dans la trace ?
+- Quelle est la durée totale de la requête ?
+- Où la plupart du temps est-il passé ?
 
 ---
 
-### Exercise 7: Set Up Alerts (Advanced)
+### Exercice 6 : Investiguer un problème de performance
 
-**Objective:** Create a Prometheus alert for high error rates.
+**Objectif :** Utiliser les outils d'observabilité pour déboguer un service lent.
 
-**Tasks:**
-1. Create a PrometheusRule resource
-2. Define an alert for error rate > 5%
-3. Test the alert by generating errors
+**Scénario :** Un de vos services répond lentement.
 
-**Example:**
+**Tâches :**
+1. Trouver les traces lentes dans Tempo (durée > 1s)
+2. Identifier quel span prend le plus de temps
+3. Corréler avec les métriques dans Prometheus
+4. Proposer une solution
+
+---
+
+### Exercice 7 : Configurer des alertes (Avancé)
+
+**Objectif :** Créer une alerte Prometheus pour des taux d'erreur élevés.
+
+**Tâches :**
+1. Créer une ressource PrometheusRule
+2. Définir une alerte pour un taux d'erreur > 5%
+3. Tester l'alerte en générant des erreurs
+
+**Exemple :**
 ```yaml
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -558,63 +558,63 @@ spec:
 
 ---
 
-### Exercise 8: Customize the Instrumentation
+### Exercice 8 : Personnaliser l'instrumentation
 
-**Objective:** Modify the Instrumentation resource to change sampling.
+**Objectif :** Modifier la ressource Instrumentation pour changer l'échantillonnage.
 
-**Tasks:**
-1. Edit the `instrumentation.yaml`
-2. Change sampler from `always_on` to `traceidratio`
-3. Set sampling rate to 50%
-4. Apply and observe the difference
+**Tâches :**
+1. Éditer le `instrumentation.yaml`
+2. Changer le sampler de `always_on` à `traceidratio`
+3. Définir le taux d'échantillonnage à 50%
+4. Appliquer et observer la différence
 
-**Hint:**
+**Indice :**
 ```yaml
 sampler:
   type: traceidratio
   argument: "0.5"
 ```
 
-## 🐛 Troubleshooting
+## 🐛 Dépannage
 
-### Helm Release Issues
+### Problèmes de release Helm
 
-**List all Helm releases:**
+**Lister toutes les releases Helm :**
 ```bash
 helm list -n monitoring
 ```
 
-**Check Helm release status:**
+**Vérifier le statut d'une release Helm :**
 ```bash
 helm status <release-name> -n monitoring
-# Examples: grafana, prometheus, tempo, otel-collector
+# Exemples : grafana, prometheus, tempo, otel-collector
 ```
 
-**Get Helm release values:**
+**Obtenir les valeurs d'une release Helm :**
 ```bash
 helm get values <release-name> -n monitoring
 ```
 
-**Rollback a failed upgrade:**
+**Restaurer une mise à jour échouée :**
 ```bash
 helm rollback <release-name> -n monitoring
 ```
 
-**Uninstall and reinstall:**
+**Désinstaller et réinstaller :**
 ```bash
 helm uninstall <release-name> -n monitoring
 helm upgrade --install <release-name> <chart> --namespace monitoring --values <values-file> --wait
 ```
 
-### Pods not starting
+### Pods ne démarrent pas
 
-**Check pod status:**
+**Vérifier le statut du pod :**
 ```bash
 kubectl describe pod <pod-name> -n monitoring
 kubectl logs <pod-name> -n monitoring
 ```
 
-**Check Helm deployment status:**
+**Vérifier le statut du déploiement Helm :**
 ```bash
 kubectl get deployments -n monitoring
 helm status grafana -n monitoring
@@ -623,122 +623,122 @@ helm status tempo -n monitoring
 helm status otel-collector -n monitoring
 ```
 
-### No traces appearing
+### Aucune trace n'apparaît
 
-**Check collector logs:**
+**Vérifier les logs du collector :**
 ```bash
-# Note: Helm deployment name may differ
+# Note : Le nom du déploiement Helm peut différer
 kubectl logs -n monitoring deployment/otel-collector-opentelemetry-collector -f
 ```
 
-**Verify instrumentation:**
+**Vérifier l'instrumentation :**
 ```bash
 kubectl get instrumentation -n monitoring
 kubectl describe pod <app-pod> -n monitoring
 ```
 
-**Common issues:**
-- Annotation format is wrong (must be `namespace/instrumentation-name`)
-- Application language not supported for auto-instrumentation
-- Network connectivity issues to collector
-- Service names changed with Helm (e.g., `prometheus-server` instead of `prometheus`)
+**Problèmes courants :**
+- Le format de l'annotation est incorrect (doit être `namespace/instrumentation-name`)
+- Le langage de l'application n'est pas pris en charge pour l'auto-instrumentation
+- Problèmes de connectivité réseau vers le collector
+- Les noms de services ont changé avec Helm (par exemple, `prometheus-server` au lieu de `prometheus`)
 
-### Grafana not showing data
+### Grafana n'affiche pas de données
 
-**Check data source configuration:**
+**Vérifier la configuration de la source de données :**
 1. Grafana → Configuration → Data Sources
-2. Test connection to Prometheus and Tempo
-3. Verify URLs are correct (note Helm service names):
-   - Prometheus: `http://prometheus-server.monitoring.svc.cluster.local:80`
-   - Tempo: `http://tempo.monitoring.svc.cluster.local:3200`
+2. Tester la connexion à Prometheus et Tempo
+3. Vérifier que les URLs sont correctes (notez les noms de services Helm) :
+   - Prometheus : `http://prometheus-server.monitoring.svc.cluster.local:80`
+   - Tempo : `http://tempo.monitoring.svc.cluster.local:3200`
 
-**Reconfigure datasources via Helm:**
+**Reconfigurer les sources de données via Helm :**
 ```bash
-# Edit grafana/values.yaml datasources section
-# Then upgrade the release
+# Éditer la section datasources de grafana/values.yaml
+# Puis mettre à jour la release
 helm upgrade grafana grafana/grafana -n monitoring --values grafana/values.yaml
 ```
 
-### High resource usage
+### Utilisation élevée des ressources
 
-**Reduce retention in Prometheus:**
+**Réduire la rétention dans Prometheus :**
 
-Edit `prometheus/values.yaml`:
+Éditer `prometheus/values.yaml` :
 ```yaml
 server:
-  retention: "1d"  # Instead of 7d
+  retention: "1d"  # Au lieu de 7d
 ```
 
-Apply changes:
+Appliquer les changements :
 ```bash
 helm upgrade prometheus prometheus-community/prometheus -n monitoring --values prometheus/values.yaml
 ```
 
-**Reduce retention in Tempo:**
+**Réduire la rétention dans Tempo :**
 
-Edit `tempo/values.yaml`:
+Éditer `tempo/values.yaml` :
 ```yaml
 tempo:
   config: |
     compactor:
       compaction:
-        block_retention: 24h  # Instead of 48h
+        block_retention: 24h  # Au lieu de 48h
 ```
 
-Apply changes:
+Appliquer les changements :
 ```bash
 helm upgrade tempo grafana/tempo -n monitoring --values tempo/values.yaml
 ```
 
-**Adjust sampling:**
+**Ajuster l'échantillonnage :**
 
-Edit `demo-instrumented/instrumentation.yaml`:
+Éditer `demo-instrumented/instrumentation.yaml` :
 ```yaml
 sampler:
   type: traceidratio
-  argument: "0.1"  # Sample only 10% of traces
+  argument: "0.1"  # Échantillonner seulement 10% des traces
 ```
 
-Apply changes:
+Appliquer les changements :
 ```bash
 kubectl apply -f demo-instrumented/instrumentation.yaml
 ```
 
-### Configuration Changes Not Applied
+### Changements de configuration non appliqués
 
-If you modify a values file and changes don't appear:
+Si vous modifiez un fichier de valeurs et que les changements n'apparaissent pas :
 
 ```bash
-# Upgrade the Helm release with new values
+# Mettre à jour la release Helm avec les nouvelles valeurs
 helm upgrade <release-name> <chart> -n monitoring --values <values-file>
 
-# Force recreation of pods
+# Forcer la recréation des pods
 helm upgrade <release-name> <chart> -n monitoring --values <values-file> --force
 
-# Verify the new configuration
+# Vérifier la nouvelle configuration
 helm get values <release-name> -n monitoring
 ```
 
-## 📖 Additional Resources
+## 📖 Ressources supplémentaires
 
-### OpenTelemetry Documentation
+### Documentation OpenTelemetry
 - [OpenTelemetry Operator](https://github.com/open-telemetry/opentelemetry-operator)
 - [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/)
 - [Auto-instrumentation](https://opentelemetry.io/docs/instrumentation/)
 
-### Observability Tools
+### Outils d'observabilité
 - [Prometheus](https://prometheus.io/docs/)
 - [Grafana Tempo](https://grafana.com/docs/tempo/latest/)
 - [Grafana](https://grafana.com/docs/grafana/latest/)
 
-### PromQL Resources
+### Ressources PromQL
 - [PromQL Basics](https://prometheus.io/docs/prometheus/latest/querying/basics/)
 - [Query Examples](https://prometheus.io/docs/prometheus/latest/querying/examples/)
 
-## 🚀 Next Steps
+## 🚀 Prochaines étapes
 
-- Integrate with Loki for log aggregation
-- Add alerting with AlertManager
-- Explore service mesh (Istio/Linkerd) integration
-- Set up long-term storage (S3, GCS)
-- Implement SLOs and error budgets
+- Intégrer avec Loki pour l'agrégation de logs
+- Ajouter l'alerting avec AlertManager
+- Explorer l'intégration avec un service mesh (Istio/Linkerd)
+- Configurer le stockage à long terme (S3, GCS)
+- Implémenter les SLOs et budgets d'erreur

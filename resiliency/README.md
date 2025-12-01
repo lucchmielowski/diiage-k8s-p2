@@ -1,17 +1,17 @@
-# Resiliency Principles Guide
+# Guide des Principes de Résilience
 
-## Table of Contents
+## Table des Matières
 - [Introduction](#introduction)
-- [Golden Signals](#golden-signals)
-- [SLIs, SLOs, and SLAs](#slis-slos-and-slas)
-- [Error Budgets](#error-budgets)
-- [Chaos Engineering](#chaos-engineering)
-- [Circuit Breakers and Rate Limiting](#circuit-breakers-and-rate-limiting)
-- [Retry Strategies](#retry-strategies)
-- [Graceful Degradation](#graceful-degradation)
-- [Observability](#observability)
-- [Deployment Strategies](#deployment-strategies)
-- [Practical Patterns](#practical-patterns)
+- [Signaux Essentiels (Golden Signals)](#golden-signals)
+- [SLI, SLO et SLA](#slis-slos-and-slas)
+- [Budgets d'Erreur](#error-budgets)
+- [Ingénierie du Chaos](#chaos-engineering)
+- [Disjoncteurs et Limitation de Débit](#circuit-breakers-and-rate-limiting)
+- [Stratégies de Réessai](#retry-strategies)
+- [Dégradation Gracieuse](#graceful-degradation)
+- [Observabilité](#observability)
+- [Stratégies de Déploiement](#deployment-strategies)
+- [Patterns Pratiques](#practical-patterns)
 
 ## Introduction
 
@@ -29,9 +29,9 @@ Pannes inévitables → Design pour la panne → Système résilient
 3. **Récupération** - Revenir à l'état normal
 4. **Apprentissage** - Améliorer continuellement
 
-## Golden Signals
+## Signaux Essentiels (Golden Signals)
 
-Les **Golden Signals** sont les 4 métriques essentielles pour monitorer n'importe quel service.
+Les **Signaux Essentiels** (Golden Signals) sont les 4 métriques essentielles pour monitorer n'importe quel service.
 
 ### Architecture de monitoring
 
@@ -184,7 +184,7 @@ Seuils typiques:
 └────────────────────────┴───────────────────────────┘
 ```
 
-## SLIs, SLOs, and SLAs
+## SLI, SLO et SLA
 
 ### Vue d'ensemble
 
@@ -339,9 +339,9 @@ Services complexes ont plusieurs SLOs:
 Chaque SLO a son propre error budget
 ```
 
-## Error Budgets
+## Budgets d'Erreur
 
-L'**error budget** est le temps de panne acceptable selon ton SLO.
+Le **budget d'erreur** (error budget) est le temps de panne acceptable selon ton SLO.
 
 ### Concept
 
@@ -498,9 +498,9 @@ Jour 31: La fenêtre glisse, Jour 1 sort
 C'est automatique avec rolling windows
 ```
 
-## Chaos Engineering
+## Ingénierie du Chaos
 
-Chaos engineering = injecter des pannes **volontairement** pour tester la résilience.
+L'ingénierie du chaos (chaos engineering) = injecter des pannes **volontairement** pour tester la résilience.
 
 ### Philosophie
 
@@ -794,11 +794,11 @@ Production - Game Days:
 └─ Major scenarios: Mensuel ou trimestriel
 ```
 
-## Circuit Breakers and Rate Limiting
+## Disjoncteurs et Limitation de Débit
 
 Patterns pour prévenir les cascades de pannes et protéger les ressources.
 
-### Circuit Breaker
+### Disjoncteur (Circuit Breaker)
 
 Coupe temporairement les appels à un service défaillant pour éviter la surcharge.
 
@@ -812,7 +812,7 @@ Coupe temporairement les appels à un service défaillant pour éviter la surcha
     État CLOSED (Normal)
     ┌─────────────────┐
     │   Requests OK   │
-    │   ✓✓✓✓✓✓✓✓     │
+    │   ✓✓✓✓✓✓✓✓      │
     └────────┬────────┘
              │
              │ Trop d'erreurs (ex: 50% sur 10 req)
@@ -820,7 +820,7 @@ Coupe temporairement les appels à un service défaillant pour éviter la surcha
     ┌─────────────────┐
     │   État OPEN     │
     │   Fail Fast     │
-    │   ✗✗✗✗✗✗✗✗     │ ← Rejette immédiatement
+    │   ✗✗✗✗✗✗✗✗      │ ← Rejette immédiatement
     └────────┬────────┘
              │
              │ Après timeout (ex: 60s)
@@ -1060,11 +1060,11 @@ metadata:
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
 ```
 
-## Retry Strategies
+## Stratégies de Réessai
 
 Réessayer intelligemment les opérations qui échouent.
 
-### Exponential Backoff
+### Backoff Exponentiel
 
 Délai qui augmente exponentiellement entre chaque retry.
 
@@ -1338,7 +1338,7 @@ Limiter les retries pour éviter l'amplification.
 └─ Retry without timeout
 ```
 
-## Graceful Degradation
+## Dégradation Gracieuse
 
 Dégrader les fonctionnalités progressivement plutôt que de tout casser.
 
@@ -1615,7 +1615,7 @@ With Bulkheads (good):
 └────────────────────────────────────┘
 ```
 
-## Observability
+## Observabilité
 
 Les **3 piliers** de l'observabilité.
 
@@ -1980,7 +1980,7 @@ Traces peuvent être coûteux - échantillonner intelligemment.
 └────────────────────────────────────┘
 ```
 
-## Deployment Strategies
+## Stratégies de Déploiement
 
 Stratégies pour déployer des changements sans risque.
 
@@ -2192,18 +2192,18 @@ Rollback = Just flip flag OFF
 └────────────────────────────────┘
 ```
 
-### Comparison Table
+### Tableau de Comparaison
 
-| Strategy      | Speed  | Risk  | Rollback | Resource | Use Case        |
-|---------------|--------|-------|----------|----------|-----------------|
-| Rolling       | Medium | Low   | Slow     | Low      | Standard        |
-| Blue-Green    | Instant| Low   | Instant  | High     | Critical apps   |
-| Canary        | Slow   | V.Low | Fast     | Medium   | High-risk       |
-| Feature Flags | Instant| V.Low | Instant  | Low      | Experimentation |
+| Stratégie         | Vitesse  | Risque   | Rollback    | Ressources | Cas d'Usage          |
+|-------------------|----------|----------|-------------|------------|----------------------|
+| Rolling           | Moyen    | Faible   | Lent        | Faible     | Standard             |
+| Blue-Green        | Instantané| Faible  | Instantané  | Élevé      | Apps critiques       |
+| Canary            | Lent     | Très faible| Rapide    | Moyen      | Haut risque          |
+| Feature Flags     | Instantané| Très faible| Instantané| Faible     | Expérimentation      |
 
-## Practical Patterns
+## Patterns Pratiques
 
-### Health Checks
+### Vérifications de Santé (Health Checks)
 
 Signaler l'état de l'application à Kubernetes.
 
@@ -2277,7 +2277,7 @@ Don't:
 ✗ Check external services in liveness
 ```
 
-### Graceful Shutdown
+### Arrêt Gracieux
 
 Arrêter proprement sans perdre de requêtes.
 
@@ -2326,7 +2326,7 @@ terminationGracePeriodSeconds: 30s
 preStop hook: /shutdown
 ```
 
-### Resource Limits
+### Limites de Ressources
 
 Contrôler l'utilisation des ressources.
 
@@ -2388,7 +2388,7 @@ limits:
   memory: 2Gi     ← Fixed (avoid OOM)
 ```
 
-### Autoscaling
+### Mise à l'Échelle Automatique
 
 Adapter automatiquement les ressources.
 
@@ -2466,7 +2466,7 @@ Queue depth < 10 → Scale to 1 pod
 Queue empty for 5min → Scale to 0
 ```
 
-## Resiliency Maturity Model
+## Modèle de Maturité de la Résilience
 
 Progression vers une architecture résiliente.
 
@@ -2525,7 +2525,7 @@ Progression vers une architecture résiliente.
 └────────────────────────────────────────────┘
 ```
 
-## Incident Response Flow
+## Flux de Réponse aux Incidents
 
 ```
 ┌────────────────────────────────────────────┐
@@ -2577,9 +2577,9 @@ Progression vers une architecture résiliente.
    └─ Share learnings team-wide
 ```
 
-## Checklist
+## Liste de Vérification
 
-### Pre-Production
+### Pré-Production
 
 ```
 Observability:
@@ -2615,34 +2615,34 @@ SLOs:
 ☐ Stakeholders aligned on targets
 ```
 
-### Continuous Operations
+### Opérations Continues
 
 ```
-☐ Weekly SLO review
-☐ Monthly error budget review
-☐ Quarterly game day
-☐ Post-mortem for all P1 incidents
-☐ Regular chaos experiments
-☐ Dashboard accuracy checks
-☐ Alert fatigue assessment
-☐ Runbook updates after incidents
+☐ Revue hebdomadaire des SLO
+☐ Revue mensuelle du budget d'erreur
+☐ Game day trimestriel
+☐ Post-mortem pour tous les incidents P1
+☐ Expériences chaos régulières
+☐ Vérifications de précision des tableaux de bord
+☐ Évaluation de la fatigue d'alerte
+☐ Mises à jour des runbooks après incidents
 ```
 
 ### Post-Incident
 
 ```
-☐ Timeline documented
-☐ Root cause identified
-☐ Impact quantified
-☐ Action items created
-☐ Runbook updated
-☐ Team debrief completed
-☐ Learnings shared
+☐ Timeline documentée
+☐ Cause racine identifiée
+☐ Impact quantifié
+☐ Actions créées
+☐ Runbook mis à jour
+☐ Débriefing d'équipe complété
+☐ Apprentissages partagés
 ```
 
-## Resources
+## Ressources
 
-### Books
+### Livres
 - **Site Reliability Engineering** (Google)
     - Bible du SRE, SLOs, error budgets
 - **The DevOps Handbook**
@@ -2652,56 +2652,56 @@ SLOs:
 - **Chaos Engineering** (Netflix)
     - Guide pratique du chaos
 
-### Tools Ecosystem
+### Écosystème d'Outils
 
 ```
 ┌─────────────────────────────────────┐
-│         Observability Stack         │
+│         Stack d'Observabilité       │
 ├─────────────────────────────────────┤
-│ Metrics:  Prometheus, Grafana       │
-│ Logs:     Loki, Fluentd             │
-│ Traces:   Jaeger, Tempo, Zipkin     │
-│ APM:      OpenTelemetry             │
+│ Métriques: Prometheus, Grafana      │
+│ Logs:      Loki, Fluentd            │
+│ Traces:    Jaeger, Tempo, Zipkin    │
+│ APM:       OpenTelemetry            │
 └─────────────────────────────────────┘
 
 ┌─────────────────────────────────────┐
-│         Chaos Engineering           │
+│         Ingénierie du Chaos         │
 ├─────────────────────────────────────┤
-│ K8s:      Chaos Mesh, Litmus        │
-│ Network:  Toxiproxy                 │
-│ AWS:      AWS FIS                   │
-│ GCP:      Chaos Toolkit             │
+│ K8s:       Chaos Mesh, Litmus       │
+│ Réseau:    Toxiproxy                │
+│ AWS:       AWS FIS                  │
+│ GCP:       Chaos Toolkit            │
 └─────────────────────────────────────┘
 
 ┌─────────────────────────────────────┐
-│         Progressive Delivery        │
+│         Livraison Progressive       │
 ├─────────────────────────────────────┤
-│ Canary:   Flagger, Argo Rollouts    │
-│ Flags:    Unleash, LaunchDarkly     │
-│ Traffic:  Istio, Linkerd            │
+│ Canary:    Flagger, Argo Rollouts   │
+│ Flags:     Unleash, LaunchDarkly    │
+│ Trafic:    Istio, Linkerd           │
 └─────────────────────────────────────┘
 
 ┌─────────────────────────────────────┐
-│         Policy & Governance         │
+│         Politiques & Gouvernance    │
 ├─────────────────────────────────────┤
-│ Policy:   Kyverno, OPA/Gatekeeper   │
-│ Security: Falco, Trivy              │
-│ Cost:     Kubecost                  │
+│ Politiques: Kyverno, OPA/Gatekeeper │
+│ Sécurité:   Falco, Trivy            │
+│ Coûts:      Kubecost                │
 └─────────────────────────────────────┘
 ```
 
 ### Standards
-- **OpenTelemetry** - Observability standard
-- **OpenMetrics** - Metrics exposition
-- **CloudEvents** - Event format
-- **CNCF Landscape** - Ecosystem map
+- **OpenTelemetry** - Standard d'observabilité
+- **OpenMetrics** - Exposition de métriques
+- **CloudEvents** - Format d'événements
+- **CNCF Landscape** - Carte de l'écosystème
 
-### Learning Resources
+### Ressources d'Apprentissage
 
-- **SRE Book** (free): [sre.google/books](sre.google/books)
+- **SRE Book** (gratuit): [sre.google/books](sre.google/books)
 - **OpenTelemetry Docs**: [opentelemetry.io](opentelemetry.io)
 - **Chaos Mesh Docs**: [chaos-mesh.org](chaos-mesh.org)
-- **CNCF YouTube**: Cloud native patterns & talks
+- **CNCF YouTube**: Patterns et conférences cloud native
 - **Alerte tout brûle - Commment maitriser vos incidents (shameless plug 🙈)** [YouTube](https://www.youtube.com/watch?v=Xjn2rfKC9cA)
 ---
 

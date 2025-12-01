@@ -45,7 +45,7 @@ spec:
         path: '{{path}}'
         helm:
           valueFiles:
-          - '{{valuesFile}}'
+          - 'https://raw.githubusercontent.com/lucchmielowski/diiage-k8s-p2/refs/heads/main/{{valuesFile}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{namespace}}'

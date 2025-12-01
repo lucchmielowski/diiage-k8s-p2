@@ -2,6 +2,30 @@
 
 Ce repo contient une infrastructure GitOps complète basée sur ArgoCD avec des applications d'exemple.
 
+## Separation of Concerns
+
+Ce repository suit le principe de **separation of concerns** entre :
+
+**Infrastructure (ce dossier `gitops/`)** :
+- Déclarations d'infrastructure GitOps
+- ApplicationSets ArgoCD
+- Configuration de bootstrap
+- Définition des environnements (namespaces)
+- **Configuration spécifique par environnement** (gitops/environments/values/)
+- **Responsabilité** : Déclarer QUELLES applications déployer, OÙ et COMMENT, avec QUELS paramètres par environnement
+
+**Application Charts (dossier `charts/` à la racine)** :
+- Définitions des applications Helm **env-agnostic**
+- Templates Kubernetes (Deployments, Services, Ingress, etc.)
+- Valeurs par défaut uniquement
+- **Responsabilité** : Définir CE QUI doit être déployé (structure de l'application), sans configuration d'environnement
+
+**Avantages de cette séparation** :
+- **Clarté** : Les équipes infra et dev travaillent sur des dossiers distincts
+- **Réutilisabilité** : Les charts peuvent être versionnés et partagés indépendamment
+- **Sécurité** : Permissions Git différentes pour infra vs app definitions
+- **Évolutivité** : Les charts peuvent être déplacés vers un registry Helm externe facilement
+
 ## Quick Start
 
 ```bash
@@ -154,30 +178,11 @@ Les deux apps sont déployées automatiquement en **dev** et manuellement en **p
 
 ## Structure repo
 
+### Infrastructure GitOps (ce dossier)
 ```
 gitops/
 ├── argocd/
 │   └── install.sh                   # Script d'installation ArgoCD via Helm
-├── apps/
-│   ├── demo-frontend/               # Application frontend
-│   │   ├── Chart.yaml
-│   │   ├── values.yaml              # Valeurs par défaut
-│   │   ├── templates/
-│   │   │   ├── deployment.yaml
-│   │   │   ├── service.yaml
-│   │   │   └── ingress.yaml
-│   │   └── environments/
-│   │       ├── values-dev.yaml      # Config dev
-│   │       └── values-prod.yaml     # Config prod
-│   └── demo-backend/                # Application backend API
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       ├── templates/
-│       │   ├── deployment.yaml
-│       │   └── service.yaml
-│       └── environments/
-│           ├── values-dev.yaml
-│           └── values-prod.yaml
 ├── applicationsets/
 │   └── demo-apps.yaml               # ApplicationSet pour déployer toutes les apps
 ├── bootstrap/
@@ -185,8 +190,31 @@ gitops/
 └── environments/
     ├── dev/
     │   └── namespace.yaml           # Namespace + quotas + limits dev
-    └── prod/
-        └── namespace.yaml           # Namespace + quotas + limits prod
+    ├── prod/
+    │   └── namespace.yaml           # Namespace + quotas + limits prod
+    └── values/                      # Configuration par environnement
+        ├── demo-frontend-dev.yaml   # Config frontend dev
+        ├── demo-frontend-prod.yaml  # Config frontend prod
+        ├── demo-backend-dev.yaml    # Config backend dev
+        └── demo-backend-prod.yaml   # Config backend prod
+```
+
+### Application Charts (à la racine du projet)
+```
+charts/
+├── demo-frontend/                   # Application frontend (env-agnostic)
+│   ├── Chart.yaml
+│   ├── values.yaml                  # Valeurs par défaut uniquement
+│   └── templates/
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       └── ingress.yaml
+└── demo-backend/                    # Application backend API (env-agnostic)
+    ├── Chart.yaml
+    ├── values.yaml                  # Valeurs par défaut uniquement
+    └── templates/
+        ├── deployment.yaml
+        └── service.yaml
 ```
 
 ## Workflow typique
@@ -224,36 +252,39 @@ L'ApplicationSet va automatiquement créer 4 Applications ArgoCD :
 
 **Exemple : changer le nombre de replicas du frontend en dev**
 
-1. Éditer `gitops/apps/demo-frontend/environments/values-dev.yaml`
+1. Éditer `gitops/environments/values/demo-frontend-dev.yaml`
 ```yaml
 replicaCount: 3  # au lieu de 1
 ```
 
 2. Commit et push
 ```bash
-git add gitops/apps/demo-frontend/environments/values-dev.yaml
+git add gitops/environments/values/demo-frontend-dev.yaml
 git commit -m "Scale demo-frontend dev to 3 replicas"
 git push
 ```
 
 3. ArgoCD détecte le changement et applique automatiquement (dev est en auto-sync)
 
-4. Pour prod (sync manuel), aller dans l'UI ArgoCD et cliquer "Sync"
+4. Pour prod (sync manuel), éditer `gitops/environments/values/demo-frontend-prod.yaml`, puis dans l'UI ArgoCD cliquer "Sync"
 
 ### Ajouter une nouvelle application
 
-1. Créer le chart Helm dans `gitops/apps/mon-app/`
-2. Ajouter l'app dans `gitops/applicationsets/demo-apps.yaml`
+1. Créer le chart Helm env-agnostic dans `charts/mon-app/` (avec uniquement values.yaml par défaut)
+2. Créer les fichiers de configuration par environnement dans `gitops/environments/values/` :
+   - `gitops/environments/values/mon-app-dev.yaml`
+   - `gitops/environments/values/mon-app-prod.yaml`
+3. Ajouter l'app dans `gitops/applicationsets/demo-apps.yaml`
 ```yaml
 - app: mon-app
-  path: apps/mon-app
+  path: charts/mon-app
   env: dev
   namespace: dev
-  valuesFile: environments/values-dev.yaml
+  valuesFile: gitops/environments/values/mon-app-dev.yaml
   autoSync: "true"
 ```
-3. Commit et push
-4. L'ApplicationSet crée automatiquement l'Application ArgoCD
+4. Commit et push
+5. L'ApplicationSet crée automatiquement l'Application ArgoCD
 
 ## Best Practices
 

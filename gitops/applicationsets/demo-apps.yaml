@@ -8,28 +8,28 @@ spec:
   - list:
       elements:
       - app: demo-frontend
-        path: apps/demo-frontend
+        path: charts/demo-frontend
         env: dev
         namespace: dev
-        valuesFile: environments/values-dev.yaml
+        valuesFile: gitops/environments/values/demo-frontend-dev.yaml
         autoSync: "true"
       - app: demo-frontend
-        path: apps/demo-frontend
+        path: charts/demo-frontend
         env: prod
         namespace: prod
-        valuesFile: environments/values-prod.yaml
+        valuesFile: gitops/environments/values/demo-frontend-prod.yaml
         autoSync: "false"
       - app: demo-backend
-        path: apps/demo-backend
+        path: charts/demo-backend
         env: dev
         namespace: dev
-        valuesFile: environments/values-dev.yaml
+        valuesFile: gitops/environments/values/demo-backend-dev.yaml
         autoSync: "true"
       - app: demo-backend
-        path: apps/demo-backend
+        path: charts/demo-backend
         env: prod
         namespace: prod
-        valuesFile: environments/values-prod.yaml
+        valuesFile: gitops/environments/values/demo-backend-prod.yaml
         autoSync: "false"
   template:
     metadata:
@@ -42,7 +42,7 @@ spec:
       source:
         repoURL: https://github.com/lucchmielowski/diiage-k8s-p2.git
         targetRevision: main
-        path: 'gitops/{{path}}'
+        path: '{{path}}'
         helm:
           valueFiles:
           - '{{valuesFile}}'

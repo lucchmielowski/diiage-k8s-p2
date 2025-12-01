@@ -1263,7 +1263,7 @@ Retry avec même key:
 → No double payment ✓
 ```
 
-### Timeouts
+### Délais d'Expiration (Timeouts)
 
 **Toujours** définir des timeouts stricts.
 
@@ -1294,7 +1294,7 @@ Chaque hop réduit le timeout
 pour laisser du temps aux layers précédents
 ```
 
-### Retry Budget
+### Budget de Réessai
 
 Limiter les retries pour éviter l'amplification.
 
@@ -1315,10 +1315,10 @@ Limiter les retries pour éviter l'amplification.
 └──────────────────────────────────────┘
 ```
 
-### Best Practices
+### Bonnes Pratiques
 
 ```
-✓ DO:
+✓ À FAIRE:
 ├─ Use exponential backoff
 ├─ Add jitter (±50%)
 ├─ Set max retry count (3-5)

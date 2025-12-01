@@ -1,0 +1,19 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: resilient-app-pdb
+  namespace: default
+spec:
+  # Ensure at least 2 pods are always available during voluntary disruptions
+  # (e.g., node drain, cluster upgrades, etc.)
+  minAvailable: 2
+  
+  # Alternative: maxUnavailable - maximum pods that can be unavailable
+  # maxUnavailable: 1
+  
+  selector:
+    matchLabels:
+      app: resilient-app
+  
+  # Optional: Unhealthy pod eviction policy
+  # unhealthyPodEvictionPolicy: IfHealthyBudget  # Kubernetes 1.26+

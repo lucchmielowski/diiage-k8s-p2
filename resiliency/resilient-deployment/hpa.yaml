@@ -1,0 +1,56 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: resilient-app-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: resilient-app
+  
+  # Scaling boundaries
+  minReplicas: 3
+  maxReplicas: 10
+  
+  # Metrics to scale on
+  metrics:
+    # Scale based on CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70  # Target 70% CPU utilization
+    
+    # Scale based on memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Target 80% memory utilization
+  
+  # Scaling behavior (Kubernetes 1.18+)
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        - type: Percent
+          value: 50         # Scale down max 50% of current pods
+          periodSeconds: 60  # Per minute
+        - type: Pods
+          value: 1          # Or max 1 pod
+          periodSeconds: 60  # Per minute
+      selectPolicy: Min     # Use the policy that results in fewer pods removed
+    
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately
+      policies:
+        - type: Percent
+          value: 100        # Scale up max 100% of current pods (double)
+          periodSeconds: 15  # Every 15 seconds
+        - type: Pods
+          value: 2          # Or max 2 pods
+          periodSeconds: 15  # Every 15 seconds
+      selectPolicy: Max     # Use the policy that results in more pods added

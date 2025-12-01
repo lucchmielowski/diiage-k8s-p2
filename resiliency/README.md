@@ -36,23 +36,25 @@ Les **Golden Signals** sont les 4 métriques essentielles pour monitorer n'impor
 ### Architecture de monitoring
 
 ```
-┌─────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────┐
 │                    Service à monitorer                   │
 │                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
-│  │ Latency  │  │ Traffic  │  │  Errors  │  │Saturation││
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬────┘ │
-└───────┼─────────────┼─────────────┼──────────────┼──────┘
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │ Latency  │  │ Traffic  │  │  Errors  │  │Saturation│  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │
+└───────┼─────────────┼─────────────┼──────────────┼───────┘
         │             │             │              │
         └─────────────┴─────────────┴──────────────┘
                           │
                     ┌─────▼──────┐
-                    │ Prometheus │
+                    │ Monitoring | 
+                    |    Tool    |
                     └─────┬──────┘
                           │
-                    ┌─────▼──────┐
-                    │  Grafana   │
-                    └────────────┘
+                  ┌───────▼────────┐
+                  │  Visualization |
+                  |      Tool      │
+                  └────────────────┘
 ```
 
 ### Les 4 Signaux
@@ -753,6 +755,27 @@ Ready-to-use Chaos Mesh examples are available in the [`chaos-mesh/`](./chaos-me
 - **Stress Test** - CPU and memory pressure testing
 
 See [`chaos-mesh/README.md`](./chaos-mesh/README.md) for detailed instructions and usage examples.
+
+### 🛡️ Production-Ready Deployment Example
+
+A comprehensive deployment example demonstrating all reliability features is available in the [`resilient-deployment/`](./resilient-deployment/) directory:
+
+- **High Availability** - Multiple replicas with pod anti-affinity
+- **Health Checks** - Startup, liveness, and readiness probes
+- **Resource Management** - CPU/memory requests and limits (QoS)
+- **Graceful Shutdown** - Proper termination handling with preStop hooks
+- **Autoscaling** - HorizontalPodAutoscaler with custom scaling behavior
+- **Disruption Protection** - PodDisruptionBudget for maintenance windows
+- **Zero-downtime Deployments** - Rolling update strategy
+- **Security Best Practices** - Non-root, read-only filesystem, dropped capabilities
+
+This example includes:
+- Complete Kubernetes manifests (Deployment, Service, HPA, PDB)
+- Detailed explanations of each reliability feature
+- Testing procedures to verify resilience
+- Customization guide for different application needs
+
+See [`resilient-deployment/README.md`](./resilient-deployment/README.md) for full documentation and deployment instructions.
 
 ### Scheduling Chaos
 
@@ -2674,12 +2697,12 @@ SLOs:
 - **CNCF Landscape** - Ecosystem map
 
 ### Learning Resources
-- **SRE Book** (free): sre.google/books
-- **OpenTelemetry Docs**: opentelemetry.io
-- **Chaos Mesh Docs**: chaos-mesh.org
-- **Kyverno Docs**: kyverno.io
-- **CNCF YouTube**: Cloud native patterns & talks
 
+- **SRE Book** (free): [sre.google/books](sre.google/books)
+- **OpenTelemetry Docs**: [opentelemetry.io](opentelemetry.io)
+- **Chaos Mesh Docs**: [chaos-mesh.org](chaos-mesh.org)
+- **CNCF YouTube**: Cloud native patterns & talks
+- **Alerte tout brûle - Commment maitriser vos incidents (shameless plug 🙈)** [YouTube](https://www.youtube.com/watch?v=Xjn2rfKC9cA)
 ---
 
 **Remember:**

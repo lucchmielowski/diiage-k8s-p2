@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resilient-app
+  namespace: default
+  labels:
+    app: resilient-app
+    tier: backend
+spec:
+  # High availability with multiple replicas
+  replicas: 3
+  
+  # Rolling update strategy for zero-downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Max 1 extra pod during update
+      maxUnavailable: 0  # Always maintain minimum capacity
+  
+  selector:
+    matchLabels:
+      app: resilient-app
+  
+  template:
+    metadata:
+      labels:
+        app: resilient-app
+        tier: backend
+        version: v1
+    
+    spec:
+      # Graceful shutdown configuration
+      terminationGracePeriodSeconds: 30
+      
+      # Anti-affinity to spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - resilient-app
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: app
+          image: nginx:1.25-alpine  # Example app - replace with your image
+          imagePullPolicy: IfNotPresent
+          
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          
+          # Resource management - Burstable QoS class
+          resources:
+            requests:
+              cpu: 100m       # Guaranteed CPU
+              memory: 128Mi   # Guaranteed memory
+            limits:
+              cpu: 500m       # Can burst to 0.5 core
+              memory: 512Mi   # Hard limit (OOMKilled if exceeded)
+          
+          # Health checks for resilience
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 30  # 150s total startup time allowed
+          
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3  # Kill pod after 3 failures
+          
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 2  # Remove from endpoints after 2 failures
+          
+          # Graceful shutdown hook
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    # Sleep to allow load balancer to remove pod from rotation
+                    sleep 5
+                    # Signal application to stop accepting new requests
+                    # Add your app-specific shutdown command here
+          
+          # Environment variables
+          env:
+            - name: PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: SHUTDOWN_TIMEOUT
+              value: "25s"  # Less than terminationGracePeriodSeconds
+          
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          
+          # Volume mounts for writable directories
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+      
+      # Volumes for read-only filesystem
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+      
+      # Security context at pod level
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
